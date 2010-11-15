@@ -1,0 +1,12 @@
+Const TILESIZE = 64
+Const MAPSIZE = 7
+Const BORDERSIZE = 10
+
+SCREEN TILESIZE*MAPSIZE + BORDERSIZE*2, TILESIZE*MAPSIZE + BORDERSIZE*2 + 150
+
+Include "Utils.cb"
+Include "Media.cb"
+Include "Tiles.cb"
+Include "Game.cb"
+
+StartGame()

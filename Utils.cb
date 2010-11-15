@@ -1,0 +1,46 @@
+//********************************************************************************
+// Utils.cb
+//
+// Yleisiä funktioita
+//********************************************************************************
+
+
+//===============================================================================
+// Tuplaklikkaus
+//================================================================================
+
+Global gDoubleClickTimer
+gDoubleClickTimer = 0
+Function MouseDoubleClick( button=1 )
+    If MouseUp(button) 
+        If gDoubleClickTimer > Timer() Then
+            gDoubleClickTimer = 0
+            Return True
+        Else
+            gDoubleClickTimer = Timer() + 500
+        EndIf
+    EndIf
+    Return False
+EndFunction 
+
+//===============================================================================
+// MouseOver-funktio [ ProgrammerOfDSG ]
+// -----------------------------
+// Tarkistaa, onko hiiri suorakulmion muotoisen alueen päällä.
+// * Funktion parametrit:
+//   - 1&2: Vasemman ylänurkan ruudun koordinaatit
+//   -   3: Suorakulmion leveys
+//   -   4: Suorakulmion pituus
+// * Funktio palauttaa 1, jos hiiri on alueen päällä, muutoin 0.
+//===============================================================================
+Function MouseOver(x,y,w,h)'x ja y akseli, w leveys, h pituus.
+    Return (MouseX() > x And MouseY() > y And Mousex() < x + w And Mousey() < y + h)
+EndFunction 
+
+
+//===============================================================================
+// Onko hiiri laatan päällä
+//===============================================================================
+Function MouseOverTile( x, y )
+    Return (MouseX() > x*TILESIZE+BORDERSIZE And MouseY() > y*TILESIZE+BORDERSIZE And MouseX() < (x+1)*TILESIZE+BORDERSIZE And MouseY() < (y+1)*TILESIZE+BORDERSIZE )
+EndFunction 

@@ -1,0 +1,11 @@
+# Ignoreen Windowsin väliaikaiset tietokantatiedostot
+*.db
+
+# Ignoreen myös kaikki valmiit exet. Ei täytetä repoa turhaan.
+*.exe
+
+# Ignoreen PhotoShop-filut.
+*.psd
+
+# Ignoreen .tmp tiedostot
+*.tmp

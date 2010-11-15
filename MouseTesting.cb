@@ -1,0 +1,154 @@
+Const BORDERSIZE = 100
+Const MAPSIZE = 7
+Const TILESIZE = 64
+
+// Vakiot RAILS-taulukolle
+Const EMPTY         = 0
+Const TOPLEFT       = 1
+Const TOPRIGHT      = 2
+Const BOTTOMRIGHT   = 3
+Const BOTTOMLEFT    = 4
+Const HORIZONTAL    = 5
+Const VERTICAL      = 6
+Const XCROSS        = 7
+
+
+SCREEN TILESIZE*MAPSIZE+BORDERSIZE*2, TILESIZE*MAPSIZE+BORDERSIZE*2
+
+img = MakeImage( TILESIZE*MAPSIZE+1, TILESIZE*MAPSIZE+1 )
+
+// Taulukko, joka sis‰lt‰‰ tiedot kaikista mahdollisista tileist‰ joihin tarrautua.
+// (x,y,0,0) = pystyriveill‰ sijaitsevan pisteen x-koordinaatti
+// (x,y,0,1) = pystyriveill‰ sijaitsevan pisteen y-koordinaatti
+// (x,y,1,0/1) = vaakariveill‰ sijaitsevien pisteiden koordinaatit
+Dim point(MAPSIZE,MAPSIZE,1,1)
+
+DrawToImage img
+    For x=0 To MAPSIZE
+        Line x*TILESIZE, 0, x*TILESIZE, TILESIZE*MAPSIZE
+    Next x
+    For y=0 To MAPSIZE
+        Line 0, y*TILESIZE, TILESIZE*MAPSIZE, y*TILESIZE
+    Next y
+    For x2=0 To MAPSIZE
+        For y2=0 To MAPSIZE
+            point(x2,y2,0,0)=x2*TILESIZE + BORDERSIZE
+            point(x2,y2,0,1)=y2*TILESIZE - TILESIZE/2 + BORDERSIZE
+            
+            point(x2,y2,1,0)=x2*TILESIZE - TILESIZE/2 + BORDERSIZE
+            point(x2,y2,1,1)=y2*TILESIZE + BORDERSIZE
+
+            Line x2*TILESIZE - 2, y2*TILESIZE - TILESIZE/2, x2*TILESIZE + 2, y2*TILESIZE - TILESIZE/2
+            Line x2*TILESIZE - TILESIZE/2, y2*TILESIZE - 2, x2*TILESIZE - TILESIZE/2, y2*TILESIZE + 2
+        Next y2
+    Next x2
+DrawToScreen
+
+
+
+
+
+Repeat
+
+    For x=0 To MAPSIZE
+        For y=0 To MAPSIZE
+            Color cbBlue
+            Box point(x,y,0,0)-2, point(x,y,0,1)-2, 5, 5
+            Color cbGreen
+            Box point(x,y,1,0)-2, point(x,y,1,1)-2, 5, 5
+        Next y
+    Next x
+    
+    Color 0,64,0
+    
+
+    
+    Color 0, 64, 0
+    DrawBoxTile( tileX, tileY )
+
+    Color cbred
+    If MouseDown(1)
+        kierrosm‰‰r‰ = 0
+        If startTileX=-1 Or startTileY=-1 Then startTileX=tileX : startTileY=tileY
+        For x2=Max(Min(RoundDown(MouseX()/64)-1,10),0) To Max(Min(RoundDown(MouseX()/64)+1,10),0)
+            For y2=Max(Min(RoundDown(MouseY()/64)-1,10),0) To Max(Min(RoundDown(MouseY()/64)+1,10),0)
+                For i=0 To 1
+                    If point(x2,y2,i,0) >= BORDERSIZE And point(x2,y2,i,1) >= BORDERSIZE Then
+                        If Distance(MouseX(),MouseY(),point(x2,y2,i,0),point(x2,y2,i,1))<TILESIZE/4 Then 
+                            If startx=-1 Then
+                                startx=point(x2,y2,i,0)
+                                starty=point(x2,y2,i,1)
+                            ElseIf endx=-1 Or endx=startx
+                                endx=point(x2,y2,i,0)
+                                endy=point(x2,y2,i,1)
+                            EndIf
+                        EndIf
+                    EndIf
+                Next i
+                kierrosm‰‰r‰ = kierrosm‰‰r‰ + 1
+            Next y2
+        Next x2
+        
+        If tileX<>startTileX Or tileY<>startTileY Then
+            startx=-1 : starty=-1 : endx=-1 : endy=-1 : startTileX=-1 : startTileY=-1
+        EndIf
+        
+        If startx<>-1 And endx<>-1 Then
+            Line startx,starty,endx,endy
+            angle = GetAngle( startx, starty, endx, endy )
+            insideTileX1 = startx - startTileX*64 - BORDERSIZE
+            If ( startx <> endx ) Or ( starty <> endy ) Then
+                block$ = "unknown!"
+                If startx = endx Then
+                    block$ = "VERTICAL"
+                ElseIf starty = endy Then
+                    block$ = "HORIZONTAL"
+                ElseIf angle=315 Then
+                    If insideTileX1=0 Then
+                        block$ = "BOTTOMLEFT"
+                    Else
+                        block$ = "TOPRIGHT"
+                    EndIf
+                ElseIf angle=135 Then
+                    If insideTileX1=32 Then
+                        block$ = "BOTTOMLEFT"
+                    Else
+                        block$ = "TOPRIGHT"
+                    EndIf
+                ElseIf angle=225 Then
+                    If insideTileX1=32 Then
+                        block$ = "TOPLEFT"
+                    Else
+                        block$ = "BOTTOMRIGHT"
+                    EndIf
+                ElseIf angle=45 Then
+                    If insideTileX1=0 Then
+                        block$ = "TOPLEFT"
+                    Else
+                        block$ = "BOTTOMRIGHT"
+                    EndIf
+                EndIf
+            EndIf
+        EndIf
+        
+    Else 
+        startx=-1 : starty=-1 : endx=-1 : endy=-1
+    EndIf
+    
+    DrawImage img, BORDERSIZE, BORDERSIZE
+    
+    Color cbWhite
+    
+    Text BORDERSIZE, 0, "Angle: " + angle
+    Text BORDERSIZE, 13, "TileX: " + tileX + "  ||  tileY: " + tileY
+    Text BORDERSIZE, 26, "BLOCK: " + block$
+    Text BORDERSIZE, ScreenHeight()-BORDERSIZE, "Kierrosm‰‰r‰: " + kierrosm‰‰r‰
+    
+    
+    SetWindow ""+FPS()
+    DrawScreen
+Forever 
+
+Function DrawBoxTile( tileX, tileY )
+    Box BORDERSIZE + tileX*64, BORDERSIZE + tileY*64, 64, 64
+EndFunction 

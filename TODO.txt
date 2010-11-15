@@ -1,0 +1,10 @@
+- Junat :D ylipäänsä koko peli.
+- Editori
+- Parempi graafinen ilme
+	* Joku hieno tilen poistoanimaatio
+	* Raiteet ja junat kunnolla
+- Äänimaailma
+	* Klikkaukset
+	* Voiton äänet
+- Maalausblokki
+- Junan jakamis-blokki (yhdestä junasta kaksi)

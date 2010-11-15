@@ -1,0 +1,174 @@
+//********************************************************************************
+// Media.cb
+//
+// Kuvat ja muu media (fontit, objektit, ‰‰net)
+//********************************************************************************
+
+Print "Ladataan kuvia... Odota hetki."
+
+// Yleiset v‰rien vakiot taulukoille
+Const TR_RED    = 0
+Const TR_YELLOW = 1
+Const TR_BLUE   = 2
+Const TR_ORANGE = 3
+Const TR_PURPLE = 4
+Const TR_GREEN  = 5
+Const TR_BROWN  = 6
+
+
+
+//================================================================================
+// Ladataan raiteet muistiin
+//================================================================================
+
+// Kuvat sis‰lt‰v‰ kaksiulotteinen taulukko.
+// (x,0) = P‰‰ll‰ olevat kuvat
+// (x,1) = Alla olevat kuvat
+Dim RAILS(7,1)
+
+// Vakiot RAILS-taulukolle
+Const EMPTY         = 0
+Const TOPLEFT       = 1
+Const TOPRIGHT      = 2
+Const BOTTOMRIGHT   = 3
+Const BOTTOMLEFT    = 4
+Const HORIZONTAL    = 5
+Const VERTICAL      = 6
+Const XCROSS        = 7
+
+RAILS( EMPTY, 0 ) = MakeImage(1,1)
+RAILS( EMPTY, 1 ) = RAILS( EMPTY, 0 )
+
+RAILS(TOPLEFT,0)     = LoadImage("media/topleft.png")
+RAILS(TOPRIGHT,0)    = LoadImage("media/topright.png")
+RAILS(BOTTOMRIGHT,0) = LoadImage("media/bottomright.png")
+RAILS(BOTTOMLEFT,0)  = LoadImage("media/bottomleft.png")
+RAILS(HORIZONTAL,0)  = LoadImage("media/horizontal.png")
+RAILS(VERTICAL,0)    = LoadImage("media/vertical.png")
+RAILS(XCROSS,0)      = LoadImage("media/xcross.png")
+
+RAILS(TOPLEFT,1)     = LoadImage("media/secondaries/topleft.png")
+RAILS(TOPRIGHT,1)    = LoadImage("media/secondaries/topright.png")
+RAILS(BOTTOMRIGHT,1) = LoadImage("media/secondaries/bottomright.png")
+RAILS(BOTTOMLEFT,1)  = LoadImage("media/secondaries/bottomleft.png")
+RAILS(HORIZONTAL,1)  = LoadImage("media/secondaries/horizontal.png")
+RAILS(VERTICAL,1)    = LoadImage("media/secondaries/vertical.png")
+RAILS(XCROSS,1)      = RAILS(XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
+
+
+
+//================================================================================
+// Junien lataus muistiin ja junien kokoelman m‰‰rittely.
+//================================================================================
+Type TRAINS
+    Field obj         // Junan objekti
+    Field trainColor  // V‰ri
+EndType
+
+// Junien objektit sis‰lt‰v‰ taulukko
+Dim TRAINOBJECTS( 6 )
+
+TRAINOBJECTS( TR_RED )    = LoadObject("media/train_red.png", 72)
+TRAINOBJECTS( TR_YELLOW ) = LoadObject("media/train_yellow.png", 72)
+TRAINOBJECTS( TR_BLUE )   = LoadObject("media/train_blue.png", 72)
+TRAINOBJECTS( TR_ORANGE ) = LoadObject("media/train_orange.png", 72)
+TRAINOBJECTS( TR_PURPLE ) = LoadObject("media/train_purple.png", 72)
+TRAINOBJECTS( TR_GREEN )  = LoadObject("media/train_green.png", 72)
+TRAINOBJECTS( TR_BROWN )  = LoadObject("media/train_brown.png", 72)
+
+// Piilotetaan junat
+For i=0 To 6
+    ShowObject TRAINOBJECTS( i ), OFF
+Next i
+
+//================================================================================
+// Aloitus- ja lopetuskuvat
+//================================================================================
+
+// Kuvat sis‰lt‰v‰ taulukko. Ensimm‰isess‰ ulottuvuudessa on tieto halutusta 
+// v‰rist‰, toisessa ulottuvuudessa kuvan koko ja kolmannessa tieto, onko
+// kuva alku- vai loppup‰‰.
+Dim ENDIMAGES( 6, 2, 1 )
+
+// Vakiot selkeytt‰m‰‰n koodia. Toista ulottuvuutta varten:
+Const EI_SIZE_1x1 = 0
+Const EI_SIZE_2x2 = 1
+Const EI_SIZE_3x3 = 3
+
+// Kolmatta ulottuvuutta varten:
+Const EI_STARTIMG = 0
+Const EI_ENDIMG   = 1
+
+
+ENDIMAGES( TR_RED, EI_SIZE_1x1, EI_STARTIMG )       = LoadImage("media/1x1/start_red.png")
+ENDIMAGES( TR_RED, EI_SIZE_1x1, EI_ENDIMG )         = LoadImage("media/1x1/end_red.png")
+ENDIMAGES( TR_RED, EI_SIZE_2x2, EI_STARTIMG )       = LoadImage("media/2x2/start_red.png")
+ENDIMAGES( TR_RED, EI_SIZE_2x2, EI_ENDIMG )         = LoadImage("media/2x2/end_red.png")
+ENDIMAGES( TR_RED, EI_SIZE_3x3, EI_STARTIMG )       = LoadImage("media/3x3/start_red.png")
+ENDIMAGES( TR_RED, EI_SIZE_3x3, EI_ENDIMG )         = LoadImage("media/3x3/end_red.png")
+ENDIMAGES( TR_YELLOW, EI_SIZE_1x1, EI_STARTIMG )    = LoadImage("media/1x1/start_yellow.png")
+ENDIMAGES( TR_YELLOW, EI_SIZE_1x1, EI_ENDIMG )      = LoadImage("media/1x1/end_yellow.png")
+ENDIMAGES( TR_YELLOW, EI_SIZE_2x2, EI_STARTIMG )    = LoadImage("media/2x2/start_yellow.png")
+ENDIMAGES( TR_YELLOW, EI_SIZE_2x2, EI_ENDIMG )      = LoadImage("media/2x2/end_yellow.png")
+ENDIMAGES( TR_YELLOW, EI_SIZE_3x3, EI_STARTIMG )    = LoadImage("media/3x3/start_yellow.png")
+ENDIMAGES( TR_YELLOW, EI_SIZE_3x3, EI_ENDIMG )      = LoadImage("media/3x3/end_yellow.png")
+ENDIMAGES( TR_BLUE, EI_SIZE_1x1, EI_STARTIMG )      = LoadImage("media/1x1/start_blue.png")
+ENDIMAGES( TR_BLUE, EI_SIZE_1x1, EI_ENDIMG )        = LoadImage("media/1x1/end_blue.png")
+ENDIMAGES( TR_BLUE, EI_SIZE_2x2, EI_STARTIMG )      = LoadImage("media/2x2/start_blue.png")
+ENDIMAGES( TR_BLUE, EI_SIZE_2x2, EI_ENDIMG )        = LoadImage("media/2x2/end_blue.png")
+ENDIMAGES( TR_BLUE, EI_SIZE_3x3, EI_STARTIMG )      = LoadImage("media/3x3/start_blue.png")
+ENDIMAGES( TR_BLUE, EI_SIZE_3x3, EI_ENDIMG )        = LoadImage("media/3x3/end_blue.png")
+ENDIMAGES( TR_ORANGE, EI_SIZE_1x1, EI_STARTIMG )    = LoadImage("media/1x1/start_orange.png")
+ENDIMAGES( TR_ORANGE, EI_SIZE_1x1, EI_ENDIMG )      = LoadImage("media/1x1/end_orange.png")
+ENDIMAGES( TR_ORANGE, EI_SIZE_2x2, EI_STARTIMG )    = LoadImage("media/2x2/start_orange.png")
+ENDIMAGES( TR_ORANGE, EI_SIZE_2x2, EI_ENDIMG )      = LoadImage("media/2x2/end_orange.png")
+ENDIMAGES( TR_ORANGE, EI_SIZE_3x3, EI_STARTIMG )    = LoadImage("media/3x3/start_orange.png")
+ENDIMAGES( TR_ORANGE, EI_SIZE_3x3, EI_ENDIMG )      = LoadImage("media/3x3/end_orange.png")
+ENDIMAGES( TR_PURPLE, EI_SIZE_1x1, EI_STARTIMG )    = LoadImage("media/1x1/start_purple.png")
+ENDIMAGES( TR_PURPLE, EI_SIZE_1x1, EI_ENDIMG )      = LoadImage("media/1x1/end_purple.png")
+ENDIMAGES( TR_PURPLE, EI_SIZE_2x2, EI_STARTIMG )    = LoadImage("media/2x2/start_purple.png")
+ENDIMAGES( TR_PURPLE, EI_SIZE_2x2, EI_ENDIMG )      = LoadImage("media/2x2/end_purple.png")
+ENDIMAGES( TR_PURPLE, EI_SIZE_3x3, EI_STARTIMG )    = LoadImage("media/3x3/start_purple.png")
+ENDIMAGES( TR_PURPLE, EI_SIZE_3x3, EI_ENDIMG )      = LoadImage("media/3x3/end_purple.png")
+ENDIMAGES( TR_GREEN, EI_SIZE_1x1, EI_STARTIMG )     = LoadImage("media/1x1/start_green.png")
+ENDIMAGES( TR_GREEN, EI_SIZE_1x1, EI_ENDIMG )       = LoadImage("media/1x1/end_green.png")
+ENDIMAGES( TR_GREEN, EI_SIZE_2x2, EI_STARTIMG )     = LoadImage("media/2x2/start_green.png")
+ENDIMAGES( TR_GREEN, EI_SIZE_2x2, EI_ENDIMG )       = LoadImage("media/2x2/end_green.png")
+ENDIMAGES( TR_GREEN, EI_SIZE_3x3, EI_STARTIMG )     = LoadImage("media/3x3/start_green.png")
+ENDIMAGES( TR_GREEN, EI_SIZE_3x3, EI_ENDIMG )       = LoadImage("media/3x3/end_green.png")
+ENDIMAGES( TR_BROWN, EI_SIZE_1x1, EI_STARTIMG )     = LoadImage("media/1x1/start_brown.png")
+ENDIMAGES( TR_BROWN, EI_SIZE_1x1, EI_ENDIMG )       = LoadImage("media/1x1/end_brown.png")
+ENDIMAGES( TR_BROWN, EI_SIZE_2x2, EI_STARTIMG )     = LoadImage("media/2x2/start_brown.png")
+ENDIMAGES( TR_BROWN, EI_SIZE_2x2, EI_ENDIMG )       = LoadImage("media/2x2/end_brown.png")
+ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_STARTIMG )     = LoadImage("media/3x3/start_brown.png")
+ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_ENDIMG )       = LoadImage("media/3x3/end_brown.png")
+
+//================================================================================
+// Yleiset k‰yttˆliittym‰n kuvat
+//================================================================================
+
+// Kuvien m‰‰r‰
+Const IMAGES_AMOUNT = 1
+
+// Kuvat sis‰lt‰v‰ taulukko
+Dim IMAGES( IMAGES_AMOUNT )
+
+// Kuvia varten vakiot
+Const IMG_GAMEAREA = 1
+
+IMAGES( IMG_GAMEAREA ) = MakeImage( TILESIZE*MAPSIZE+1, TILESIZE*MAPSIZE+1 )
+
+// Tehd‰‰n pelille taustataulukko
+DrawToImage IMAGES( IMG_GAMEAREA )
+
+    Color 0,0,64
+    Box 0, 0, ImageWidth( IMAGES( IMG_GAMEAREA ) ), ImageHeight( IMAGES( IMG_GAMEAREA ) )
+
+    Color cbWhite
+    For x=0 To MAPSIZE
+        Line x*TILESIZE, 0, x*TILESIZE, TILESIZE*MAPSIZE
+    Next x
+    For y=0 To MAPSIZE
+        Line 0, y*TILESIZE, TILESIZE*MAPSIZE, y*TILESIZE
+    Next y
+DrawToScreen 

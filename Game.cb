@@ -1,0 +1,154 @@
+//********************************************************************************
+// Game.cb
+//
+// Varsinaisen pelin mekaniikka
+//********************************************************************************
+
+// Kolmiulotteinen taulukko karttaa varten. Ensimm‰iset kaksi ulottuvuutta
+// m‰‰r‰‰v‰t palikoiden x- ja y-koordinaatit, kolmas ulottuvuus sis‰lt‰‰
+// tiedon siit‰, kumpi palikka on p‰‰ll‰.
+// Taulukkojen soluihin tallennettavat vakiot ovat samat kuin MAPS-taulukolla.
+// (tileX, tileY, 0) = Alla oleva palikka
+// (tileX, tileY, 1) = P‰‰ll‰ oleva palikka
+Dim MAP(MAPSIZE-1,MAPSIZE-1,1)
+
+// Kokoelma erikoispaloja (alku- ja loppup‰‰t, maalauspalikat yms.) varten.
+Type SPECIALBLOCKS
+    Field tileX      // Palasen x-tilekoordinaatti
+    Field tileY      // Palasen y-tilekoordinaatti
+    Field blockType  // Palasen tyyppi
+    Field directions // Suunnat...?
+    Field amount     // Palasen sis‰lt‰m‰ m‰‰r‰, esim. l‰htevien junien m‰‰r‰.
+EndType
+
+//================================================================================
+// Pelin p‰‰silmukka
+//================================================================================
+Function StartGame()
+    CreateMap()
+    Repeat
+        // Piirret‰‰n taustakuva pelialueelle
+        DrawImage IMAGES( IMG_GAMEAREA ), BORDERSIZE, BORDERSIZE
+    
+        ClsColor 64,0,0
+        EditGameMap()
+        DrawScreen
+    Until EscapeKey()
+    
+EndFunction
+
+//================================================================================
+// Kartan muokkaaminen
+//================================================================================
+Function EditGameMap()
+    // Pit‰‰ tehd‰ tuplaklikkaustarkistus ennen for-looppia
+    If MouseDoubleClick() Then
+        doubleclicked = True
+    Else
+        doubleclicked = False
+    EndIf
+    
+    // Tarkistetaan hiirell‰ piirto
+    blockType = checkTileEdits()
+    
+    // Jos tapahtui muutos, niin poistetaan muokatun tilen toisarvoinen raide
+    // ja asetetaan nykyinen raide toisarvoiseksi. Uusi raite ensiarvoiseksi.
+    // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva.
+    If blockType<>False Then
+        If blockType <> MAP( gEditedTileX, gEditedTileY, 0 ) Then
+            // Ei muuteta palasia, jos edellinen palanen on jo x-risteys ja uusi palanen olisi suora.
+            If Not ( ( blockType = VERTICAL Or blockType = HORIZONTAL ) And MAP( gEditedTileX, gEditedTileY, 1 ) = XCROSS )
+                // Tarkistetaan, tekeekˆ uusi raide vanhan kanssa x-risteyksen.
+                If blockType = VERTICAL And MAP( gEditedTileX, gEditedTileY, 0 ) = HORIZONTAL Then
+                    MAP( gEditedTileX, gEditedTileY, 0 ) = XCROSS
+                    MAP( gEditedTileX, gEditedTileY, 1 ) = XCROSS
+                ElseIf blockType = HORIZONTAL And MAP( gEditedTileX, gEditedTileY, 0 ) = VERTICAL Then
+                    MAP( gEditedTileX, gEditedTileY, 0 ) = XCROSS
+                    MAP( gEditedTileX, gEditedTileY, 1 ) = XCROSS
+                Else
+                    MAP( gEditedTileX, gEditedTileY, 1 ) = MAP( gEditedTileX, gEditedTileY, 0 )
+                    MAP( gEditedTileX, gEditedTileY, 0 ) = blockType
+                EndIf
+            EndIf
+        EndIf
+    EndIf
+    //----------------------------------------------------------------------------
+    // Kartan piirto
+    //----------------------------------------------------------------------------
+    For x=0 To MAPSIZE-1
+        For y=0 To MAPSIZE-1
+            If doubleclicked Then
+                If MouseOverTile(x,y) Then
+                    // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
+                    // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
+                    // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
+                    If MAP(x,y,0)<>EMPTY And MAP(x,y,1)<>EMPTY
+                        tmp = MAP(x,y,0)
+                        MAP(x,y,0) = MAP(x,y,1)
+                        MAP(x,y,1) = tmp
+                    EndIf
+                EndIf
+            ElseIf MouseHit(2) Then
+                If MouseOverTile(x,y)
+                    // Hiiren kakkospainiketta (yleens‰ vasenta) painiketta painettiin.
+                    // Poistetaan hiiren alla oleva tile.
+                    DeleteTile(x,y)
+                EndIf
+            EndIf
+            
+            // Piirret‰‰n tile n‰ytˆlle
+            DrawTile(x,y)
+
+        Next y
+    Next x
+    
+EndFunction
+
+
+//================================================================================
+// Tee kartta. T‰h‰n funktioon tulee myˆhemmin kaikkien erikoispalojen
+// laitot ja kartan lataus muistiin tiedostosta.
+//================================================================================
+Function CreateMap()
+    
+    // Vaihda t‰m‰n muuttujan arvo todeksi, kun haluat poistua loopista.
+    doneEditing = True
+    While( Not doneEditing )
+        For x=0 To MAPSIZE-1
+            For y=0 To MAPSIZE-1
+                DrawTile(x,y)
+            Next y
+        Next x
+        
+        If KeyHit(cbKeyReturn) Then doneEditing = True
+        
+        DrawScreen
+    Wend
+    
+    'Return False
+    
+    If 0 Then
+        // T‰ytet‰‰n kartta randomilla.
+        For x=0 To MAPSIZE-1
+            For y=0 To MAPSIZE-1
+                rand1 = Rand(1,6)
+                rand2 = Rand(1,6)
+                If ( rand1 = VERTICAL And rand2 = HORIZONTAL ) Or ( rand1 = HORIZONTAL And rand2 = VERTICAL ) Then
+                    rand1 = XCROSS
+                    rand2 = XCROSS
+                EndIf
+                MAP(x,y,0) = rand1
+                MAP(x,y,1) = rand2
+            Next y
+        Next x
+    Else
+        // Tyhj‰ kartta :p
+        For x=0 To MAPSIZE-1
+            For y=0 To MAPSIZE-1
+                MAP(x,y,0) = EMPTY
+                MAP(x,y,0) = EMPTY
+            Next y
+        Next x
+    EndIf
+EndFunction
+
