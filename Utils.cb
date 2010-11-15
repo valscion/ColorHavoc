@@ -37,10 +37,3 @@ Function MouseOver(x,y,w,h)'x ja y akseli, w leveys, h pituus.
     Return (MouseX() > x And MouseY() > y And Mousex() < x + w And Mousey() < y + h)
 EndFunction 
 
-
-//===============================================================================
-// Onko hiiri laatan päällä
-//===============================================================================
-Function MouseOverTile( x, y )
-    Return (MouseX() > x*TILESIZE+BORDERSIZE And MouseY() > y*TILESIZE+BORDERSIZE And MouseX() < (x+1)*TILESIZE+BORDERSIZE And MouseY() < (y+1)*TILESIZE+BORDERSIZE )
-EndFunction 

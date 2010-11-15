@@ -1,0 +1,51 @@
+//********************************************************************************
+// Menu.cb
+//
+// Valikko
+//********************************************************************************
+
+// Vakiot ohjaamaan eri menujen piirtoa.
+Const MNU_MAIN       = 0
+Const MNU_SETTINGS   = 1
+Const MNU_SAVE       = 2
+Const MNU_LOAD       = 3
+
+//================================================================================
+// Valikon piirt‰minen, p‰‰silmukka.
+//================================================================================
+Function DrawMenu( _menu = MNU_MAIN )
+    Repeat
+        DrawImage IMAGES( IMG_MENUBG ), 0, 0
+        
+        If DrawMenuItem( "Start game!", 100 ) Then
+            StartGame()
+        ElseIf DrawMenuItem( "Go to editor", 200 ) Then
+            Editor()
+        ElseIf DrawMenuItem( "Exit program", 300 ) Then
+            Exit
+        EndIf
+        DrawScreen
+    Forever
+EndFunction 
+
+
+//================================================================================
+// Valikon valinnan piirt‰minen
+//================================================================================
+Function DrawMenuItem( _txt$, _yPosition )
+    Color cbWhite
+    
+    x_coord = ScreenWidth()/2-100
+    Text (ScreenWidth()-TextWidth(_txt))/2, _yPosition + 20 - (TextHeight(_txt)/2), _txt
+    
+    If MouseOver( x_coord, _yPosition, 200, 40 ) Then
+        Color cbGreen
+        If MouseHit(1) Then
+            Return True
+        EndIf
+    EndIf
+    
+    Box x_coord, _yPosition, 200, 40, OFF 
+    
+    Return False
+EndFunction 

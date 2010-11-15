@@ -4,43 +4,62 @@
 // Varsinaisen pelin mekaniikka
 //********************************************************************************
 
-// Kolmiulotteinen taulukko karttaa varten. Ensimm‰iset kaksi ulottuvuutta
-// m‰‰r‰‰v‰t palikoiden x- ja y-koordinaatit, kolmas ulottuvuus sis‰lt‰‰
-// tiedon siit‰, kumpi palikka on p‰‰ll‰.
-// Taulukkojen soluihin tallennettavat vakiot ovat samat kuin MAPS-taulukolla.
-// (tileX, tileY, 0) = Alla oleva palikka
-// (tileX, tileY, 1) = P‰‰ll‰ oleva palikka
-Dim MAP(MAPSIZE-1,MAPSIZE-1,1)
 
-// Kokoelma erikoispaloja (alku- ja loppup‰‰t, maalauspalikat yms.) varten.
-Type SPECIALBLOCKS
-    Field tileX      // Palasen x-tilekoordinaatti
-    Field tileY      // Palasen y-tilekoordinaatti
-    Field blockType  // Palasen tyyppi
-    Field directions // Suunnat...?
-    Field amount     // Palasen sis‰lt‰m‰ m‰‰r‰, esim. l‰htevien junien m‰‰r‰.
-EndType
 
 //================================================================================
 // Pelin p‰‰silmukka
 //================================================================================
 Function StartGame()
-    CreateMap()
     Repeat
         // Piirret‰‰n taustakuva pelialueelle
         DrawImage IMAGES( IMG_GAMEAREA ), BORDERSIZE, BORDERSIZE
     
         ClsColor 64,0,0
         EditGameMap()
+        DrawGameMap()
         DrawScreen
-    Until EscapeKey()
+    Until EscapeKey() Or KeyHit(cbKeyQ)
+    
+    Return True
     
 EndFunction
 
 //================================================================================
-// Kartan muokkaaminen
+// Raiteiden piirto karttaan.
 //================================================================================
 Function EditGameMap()
+    // Tarkistetaan hiirell‰ piirto
+    blockType = checkRailDraws()
+    
+    // Jos tapahtui muutos, niin poistetaan muokatun tilen toisarvoinen raide
+    // ja asetetaan nykyinen raide toisarvoiseksi. Uusi raite ensiarvoiseksi.
+    // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva.
+    If blockType<>False Then
+        If blockType <> RAILS( gEditedTileX, gEditedTileY, 0 ) Then
+            // Ei muuteta palasia, jos edellinen palanen on jo x-risteys ja uusi palanen olisi suora.
+            If Not ( ( blockType = TR_VERTICAL Or blockType = TR_HORIZONTAL ) And RAILS( gEditedTileX, gEditedTileY, 1 ) = TR_XCROSS )
+                // Tarkistetaan, tekeekˆ uusi raide vanhan kanssa x-risteyksen.
+                If blockType = TR_VERTICAL And RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_HORIZONTAL Then
+                    RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_XCROSS
+                    RAILS( gEditedTileX, gEditedTileY, 1 ) = TR_XCROSS
+                ElseIf blockType = TR_HORIZONTAL And RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_VERTICAL Then
+                    RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_XCROSS
+                    RAILS( gEditedTileX, gEditedTileY, 1 ) = TR_XCROSS
+                Else
+                    RAILS( gEditedTileX, gEditedTileY, 1 ) = RAILS( gEditedTileX, gEditedTileY, 0 )
+                    RAILS( gEditedTileX, gEditedTileY, 0 ) = blockType
+                EndIf
+            EndIf
+        EndIf
+    EndIf
+EndFunction
+
+
+//================================================================================
+// Kartan piirto
+//================================================================================
+Function DrawGameMap()
+
     // Pit‰‰ tehd‰ tuplaklikkaustarkistus ennen for-looppia
     If MouseDoubleClick() Then
         doubleclicked = True
@@ -48,107 +67,128 @@ Function EditGameMap()
         doubleclicked = False
     EndIf
     
-    // Tarkistetaan hiirell‰ piirto
-    blockType = checkTileEdits()
-    
-    // Jos tapahtui muutos, niin poistetaan muokatun tilen toisarvoinen raide
-    // ja asetetaan nykyinen raide toisarvoiseksi. Uusi raite ensiarvoiseksi.
-    // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva.
-    If blockType<>False Then
-        If blockType <> MAP( gEditedTileX, gEditedTileY, 0 ) Then
-            // Ei muuteta palasia, jos edellinen palanen on jo x-risteys ja uusi palanen olisi suora.
-            If Not ( ( blockType = VERTICAL Or blockType = HORIZONTAL ) And MAP( gEditedTileX, gEditedTileY, 1 ) = XCROSS )
-                // Tarkistetaan, tekeekˆ uusi raide vanhan kanssa x-risteyksen.
-                If blockType = VERTICAL And MAP( gEditedTileX, gEditedTileY, 0 ) = HORIZONTAL Then
-                    MAP( gEditedTileX, gEditedTileY, 0 ) = XCROSS
-                    MAP( gEditedTileX, gEditedTileY, 1 ) = XCROSS
-                ElseIf blockType = HORIZONTAL And MAP( gEditedTileX, gEditedTileY, 0 ) = VERTICAL Then
-                    MAP( gEditedTileX, gEditedTileY, 0 ) = XCROSS
-                    MAP( gEditedTileX, gEditedTileY, 1 ) = XCROSS
-                Else
-                    MAP( gEditedTileX, gEditedTileY, 1 ) = MAP( gEditedTileX, gEditedTileY, 0 )
-                    MAP( gEditedTileX, gEditedTileY, 0 ) = blockType
-                EndIf
-            EndIf
-        EndIf
-    EndIf
-    //----------------------------------------------------------------------------
-    // Kartan piirto
-    //----------------------------------------------------------------------------
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
-            If doubleclicked Then
-                If MouseOverTile(x,y) Then
+            If TileType(x,y) = TILE_TRACK And MouseOverTile(x,y) Then
+                If doubleclicked Then
                     // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
                     // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
                     // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
-                    If MAP(x,y,0)<>EMPTY And MAP(x,y,1)<>EMPTY
-                        tmp = MAP(x,y,0)
-                        MAP(x,y,0) = MAP(x,y,1)
-                        MAP(x,y,1) = tmp
+                    If RAILS(x,y,0)<>TR_EMPTY
+                        tmp = RAILS(x,y,0)
+                        RAILS(x,y,0) = RAILS(x,y,1)
+                        RAILS(x,y,1) = tmp
                     EndIf
-                EndIf
-            ElseIf MouseHit(2) Then
-                If MouseOverTile(x,y)
+                ElseIf MouseHit(2) Then
                     // Hiiren kakkospainiketta (yleens‰ vasenta) painiketta painettiin.
                     // Poistetaan hiiren alla oleva tile.
-                    DeleteTile(x,y)
+                    DeleteTrack(x,y)
                 EndIf
             EndIf
             
-            // Piirret‰‰n tile n‰ytˆlle
+            // Piirret‰‰n palanen n‰ytˆlle
             DrawTile(x,y)
-
         Next y
     Next x
-    
-EndFunction
+EndFunction 
 
 
 //================================================================================
-// Tee kartta. T‰h‰n funktioon tulee myˆhemmin kaikkien erikoispalojen
-// laitot ja kartan lataus muistiin tiedostosta.
+// Hieman monimutkainen funktio uuden raiteen selvitt‰miseksi. Uuden palasen
+// koordinaatit tallennetaan muuttujiin gEditedTileX ja gEditTileY.
+// Funktio tarvitsee avukseen useita globaaleia, koska se on v‰h‰n purkkainen.
+// gCNT-alkuiset globaalit ovat funktion sis‰iseen k‰yttˆˆn tarkoitetut.
+// Funktiota pit‰‰ kutsua joka loopin kierros.
+// -> Funktio palauttaa uuden palasen vakion arvon.
 //================================================================================
-Function CreateMap()
+Global gCNTtileX, gCNTtileY, gCNTstartTileX, gCNTstartTileY
+Global gCNTstartX, gCNTstartY, gCNTendX, gCNTendY
+Global gEditedTileX, gEditedTileY
+
+Function CheckRailDraws()
     
-    // Vaihda t‰m‰n muuttujan arvo todeksi, kun haluat poistua loopista.
-    doneEditing = True
-    While( Not doneEditing )
-        For x=0 To MAPSIZE-1
-            For y=0 To MAPSIZE-1
-                DrawTile(x,y)
-            Next y
-        Next x
+    gCNTtileX = (MouseX()-BORDERSIZE)/64
+    gCNTtileY = (MouseY()-BORDERSIZE)/64
+    
+    gCNTtileX = Min(Max(gCNTtileX,0),MAPSIZE-1)
+    gCNTtileY = Min(Max(gCNTtileY,0),MAPSIZE-1)
+    
+    If MouseDown(1)
+        If gCNTstartTileX=-1 Or gCNTstartTileY=-1 Then gCNTstartTileX=gCNTtileX : gCNTstartTileY=gCNTtileY
+        For x2=Max(Min(RoundDown(MouseX()/64)-1,10),0) To Max(Min(RoundDown(MouseX()/64)+1,10),0)
+            For y2=Max(Min(RoundDown(MouseY()/64)-1,10),0) To Max(Min(RoundDown(MouseY()/64)+1,10),0)
+                For i=0 To 1
+                    If GLUEPOINTS(x2,y2,i,0) >= BORDERSIZE And GLUEPOINTS(x2,y2,i,1) >= BORDERSIZE Then
+                        If Distance(MouseX(),MouseY(),GLUEPOINTS(x2,y2,i,0),GLUEPOINTS(x2,y2,i,1))<TILESIZE/4 Then 
+                            If gCNTstartX=-1 Then
+                                gCNTstartX=GLUEPOINTS(x2,y2,i,0)
+                                gCNTstartY=GLUEPOINTS(x2,y2,i,1)
+                            ElseIf gCNTendX=-1 Or gCNTendX=gCNTstartX
+                                gCNTendX=GLUEPOINTS(x2,y2,i,0)
+                                gCNTendY=GLUEPOINTS(x2,y2,i,1)
+                            EndIf
+                        EndIf
+                    EndIf
+                Next i
+            Next y2
+        Next x2
         
-        If KeyHit(cbKeyReturn) Then doneEditing = True
+        If gCNTtileX<>gCNTstartTileX Or gCNTtileY<>gCNTstartTileY Then
+            gCNTstartX=-1 : gCNTstartY=-1 : gCNTendX=-1 : gCNTendY=-1 : gCNTstartTileX=-1 : gCNTstartTileY=-1
+        EndIf
         
-        DrawScreen
-    Wend
-    
-    'Return False
-    
-    If 0 Then
-        // T‰ytet‰‰n kartta randomilla.
-        For x=0 To MAPSIZE-1
-            For y=0 To MAPSIZE-1
-                rand1 = Rand(1,6)
-                rand2 = Rand(1,6)
-                If ( rand1 = VERTICAL And rand2 = HORIZONTAL ) Or ( rand1 = HORIZONTAL And rand2 = VERTICAL ) Then
-                    rand1 = XCROSS
-                    rand2 = XCROSS
+        If gCNTstartX<>-1 And gCNTendX<>-1 Then
+            'Color cbYellow
+            'Line gCNTstartX,gCNTstartY,gCNTendX,gCNTendY
+            angle = GetAngle( gCNTstartX, gCNTstartY, gCNTendX, gCNTendY )
+            blockCheck = gCNTstartX - gCNTstartTileX*64 - BORDERSIZE
+            If ( gCNTstartX <> gCNTendX ) Or ( gCNTstartY <> gCNTendY ) Then
+                block = TR_EMPTY
+                If gCNTstartX = gCNTendX Then
+                    block = TR_VERTICAL
+                ElseIf gCNTstartY = gCNTendY Then
+                    block = TR_HORIZONTAL
+                ElseIf angle=315 Then
+                    If blockCheck=0 Then
+                        block = TR_BOTTOMLEFT
+                    Else
+                        block = TR_TOPRIGHT
+                    EndIf
+                ElseIf angle=135 Then
+                    If blockCheck=32 Then
+                        block = TR_BOTTOMLEFT
+                    Else
+                        block = TR_TOPRIGHT
+                    EndIf
+                ElseIf angle=225 Then
+                    If blockCheck=32 Then
+                        block = TR_TOPLEFT
+                    Else
+                        block = TR_BOTTOMRIGHT
+                    EndIf
+                ElseIf angle=45 Then
+                    If blockCheck=0 Then
+                        block = TR_TOPLEFT
+                    Else
+                        block = TR_BOTTOMRIGHT
+                    EndIf
                 EndIf
-                MAP(x,y,0) = rand1
-                MAP(x,y,1) = rand2
-            Next y
-        Next x
-    Else
-        // Tyhj‰ kartta :p
-        For x=0 To MAPSIZE-1
-            For y=0 To MAPSIZE-1
-                MAP(x,y,0) = EMPTY
-                MAP(x,y,0) = EMPTY
-            Next y
-        Next x
+            EndIf
+        EndIf
+        
+    Else 
+        gCNTstartX=-1 : gCNTstartY=-1 : gCNTendX=-1 : gCNTendY=-1 : gCNTstartTileX=-1 : gCNTstartTileY=-1
     EndIf
-EndFunction
+    
+    If block<>TR_EMPTY Then
+        gEditedTileX = gCNTtileX
+        gEditedTileY = gCNTtileY
+        Return block
+    Else
+        Return False
+    EndIf
+    
+EndFunction 
+
+
 

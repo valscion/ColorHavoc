@@ -1,0 +1,104 @@
+//********************************************************************************
+// Map.cb
+//
+// Kartan piirtoon ja muuhun karttaan liittyvien yleisten toimintojen hoito.
+//********************************************************************************
+
+// Eri tiletyypit
+Const TILE_TRACK     = 0
+Const TILE_START     = 1
+Const TILE_FINISH    = 2
+Const TILE_ROADBLOCK = 3
+Const TILE_PAINTER   = 4 'ei käytössä vielä
+Const TILE_DIVIDER   = 5 'ei käytössä vielä
+Const TILE_EMPTY     = 255
+
+
+// Kolmiulotteinen taulukko raiteita varten. Ensimmäiset kaksi ulottuvuutta
+// määräävät palikoiden x- ja y-koordinaatit, kolmas ulottuvuus sisältää
+// tiedon siitä, kumpi palikka on päällä.
+// Taulukkojen soluihin tallennettavat vakiot ovat samat kuin MAPS-taulukolla.
+// (tileX, tileY, 0) = Alla oleva palikka
+// (tileX, tileY, 1) = Päällä oleva palikka
+Dim RAILS(MAPSIZE-1,MAPSIZE-1,1)
+
+// Kokoelma erikoispaloja (alku- ja loppupäät, maalauspalikat yms.) varten.
+Type SPECIALBLOCKS
+    Field tileX      // Palasen x-tilekoordinaatti
+    Field tileY      // Palasen y-tilekoordinaatti
+    Field blockType  // Palasen tyyppi
+    Field directions // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
+    Field amount     // Palasen sisältämä määrä, esim. lähtevien junien määrä.
+EndType
+
+// Taulukko, joka sisältää tiedot kaikista mahdollisista pisteistä joihin tarrautua.
+// (x,y,0,0) = pystyriveillä sijaitsevan pisteen x-koordinaatti
+// (x,y,0,1) = pystyriveillä sijaitsevan pisteen y-koordinaatti
+// (x,y,1,0/1) = vaakariveillä sijaitsevien pisteiden koordinaatit
+Dim GLUEPOINTS(MAPSIZE,MAPSIZE,1,1)
+
+// Laitetaan GLUEPOINTS-taulukkoon oikeat arvot jo käynnistyksessä.
+For x2=0 To MAPSIZE
+    For y2=0 To MAPSIZE
+        GLUEPOINTS(x2,y2,0,0)=x2*TILESIZE + BORDERSIZE
+        GLUEPOINTS(x2,y2,0,1)=y2*TILESIZE - TILESIZE/2 + BORDERSIZE
+        
+        GLUEPOINTS(x2,y2,1,0)=x2*TILESIZE - TILESIZE/2 + BORDERSIZE
+        GLUEPOINTS(x2,y2,1,1)=y2*TILESIZE + BORDERSIZE
+    Next y2
+Next x2
+x2=0 : y2=0
+
+
+
+//================================================================================
+// Yksittäisen laatan piirto
+//================================================================================
+Function DrawTile( x, y )
+    // Piirretään palaset. Ovela logiikka, jolla tarkistetaan,
+    // ovatko molemmat kuvat päällepiirrettäviä (eli vastakkaiset
+    // käännökset). If-lause on vähän turhan pitkä :/
+    bothon = False
+    If ( RAILS(x,y,0) = TR_TOPLEFT And RAILS(x,y,1) = TR_BOTTOMRIGHT ) Or ( RAILS(x,y,0) = TR_TOPRIGHT And RAILS(x,y,1) = TR_BOTTOMLEFT ) Or ( RAILS(x,y,1) = TR_TOPLEFT And RAILS(x,y,0) = TR_BOTTOMRIGHT ) Or ( RAILS(x,y,1) = TR_TOPRIGHT And RAILS(x,y,0) = TR_BOTTOMLEFT ) Then
+        bothon = True
+    EndIf
+
+    
+    DrawImage RAILIMGS( RAILS(x,y,1),Not bothon ), x*TILESIZE+BORDERSIZE, y*TILESIZE+BORDERSIZE
+    DrawImage RAILIMGS( RAILS(x,y,0),0 ), x*TILESIZE+BORDERSIZE, y*TILESIZE+BORDERSIZE
+EndFunction
+
+//================================================================================
+// Yksittäisen raiteen poisto.
+//================================================================================
+Function DeleteTrack( x, y )
+    RAILS( x, y, 0 ) = TR_EMPTY
+    RAILS( x, y, 1 ) = TR_EMPTY
+    
+    Return True
+EndFunction
+
+
+//===============================================================================
+// Onko hiiri laatan päällä
+//===============================================================================
+Function MouseOverTile( x, y )
+    Return (MouseX() > x*TILESIZE+BORDERSIZE And MouseY() > y*TILESIZE+BORDERSIZE And MouseX() < (x+1)*TILESIZE+BORDERSIZE And MouseY() < (y+1)*TILESIZE+BORDERSIZE )
+EndFunction 
+
+//===============================================================================
+// Tarkista laatan tyyppi
+//===============================================================================
+Function TileType( _tileX, _tileY )
+    If RAILS( _tileX, _tileY,1 ) <> TR_EMPTY Then
+        Return TILE_TRACK
+    EndIf
+    
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\tileX = _tileX And sb\tileY = _tileY Then
+            Return sb\blockType
+        EndIf
+    Next sb
+    
+    Return TILE_EMPTY
+EndFunction 

@@ -4,16 +4,18 @@
 // Kuvat ja muu media (fontit, objektit, ‰‰net)
 //********************************************************************************
 
-Print "Ladataan kuvia... Odota hetki."
+Text 0, 0, "Ladataan kuvia... Odota hetki."
+DrawScreen
 
 // Yleiset v‰rien vakiot taulukoille
-Const TR_RED    = 0
-Const TR_YELLOW = 1
-Const TR_BLUE   = 2
-Const TR_ORANGE = 3
-Const TR_PURPLE = 4
-Const TR_GREEN  = 5
-Const TR_BROWN  = 6
+Const TR_RED     = 0
+Const TR_YELLOW  = 1
+Const TR_BLUE    = 2
+Const TR_ORANGE  = 3
+Const TR_PURPLE  = 4
+Const TR_GREEN   = 5
+Const TR_BROWN   = 6
+Const TR_GENERAL = 7
 
 
 
@@ -24,36 +26,36 @@ Const TR_BROWN  = 6
 // Kuvat sis‰lt‰v‰ kaksiulotteinen taulukko.
 // (x,0) = P‰‰ll‰ olevat kuvat
 // (x,1) = Alla olevat kuvat
-Dim RAILS(7,1)
+Dim RAILIMGS(7,1)
 
-// Vakiot RAILS-taulukolle
-Const EMPTY         = 0
-Const TOPLEFT       = 1
-Const TOPRIGHT      = 2
-Const BOTTOMRIGHT   = 3
-Const BOTTOMLEFT    = 4
-Const HORIZONTAL    = 5
-Const VERTICAL      = 6
-Const XCROSS        = 7
+// Vakiot RAIL_IMGS-taulukolle
+Const TR_EMPTY       = 0
+Const TR_TOPLEFT     = 1
+Const TR_TOPRIGHT    = 2
+Const TR_BOTTOMRIGHT = 3
+Const TR_BOTTOMLEFT  = 4
+Const TR_HORIZONTAL  = 5
+Const TR_VERTICAL    = 6
+Const TR_XCROSS      = 7
 
-RAILS( EMPTY, 0 ) = MakeImage(1,1)
-RAILS( EMPTY, 1 ) = RAILS( EMPTY, 0 )
+RAILIMGS( TR_EMPTY, 0 ) = MakeImage(1,1)
+RAILIMGS( TR_EMPTY, 1 ) = RAILIMGS( TR_EMPTY, 0 )
 
-RAILS(TOPLEFT,0)     = LoadImage("media/topleft.png")
-RAILS(TOPRIGHT,0)    = LoadImage("media/topright.png")
-RAILS(BOTTOMRIGHT,0) = LoadImage("media/bottomright.png")
-RAILS(BOTTOMLEFT,0)  = LoadImage("media/bottomleft.png")
-RAILS(HORIZONTAL,0)  = LoadImage("media/horizontal.png")
-RAILS(VERTICAL,0)    = LoadImage("media/vertical.png")
-RAILS(XCROSS,0)      = LoadImage("media/xcross.png")
+RAILIMGS(TR_TOPLEFT,0)     = LoadImage("media/topleft.png")
+RAILIMGS(TR_TOPRIGHT,0)    = LoadImage("media/topright.png")
+RAILIMGS(TR_BOTTOMRIGHT,0) = LoadImage("media/bottomright.png")
+RAILIMGS(TR_BOTTOMLEFT,0)  = LoadImage("media/bottomleft.png")
+RAILIMGS(TR_HORIZONTAL,0)  = LoadImage("media/horizontal.png")
+RAILIMGS(TR_VERTICAL,0)    = LoadImage("media/vertical.png")
+RAILIMGS(TR_XCROSS,0)      = LoadImage("media/xcross.png")
 
-RAILS(TOPLEFT,1)     = LoadImage("media/secondaries/topleft.png")
-RAILS(TOPRIGHT,1)    = LoadImage("media/secondaries/topright.png")
-RAILS(BOTTOMRIGHT,1) = LoadImage("media/secondaries/bottomright.png")
-RAILS(BOTTOMLEFT,1)  = LoadImage("media/secondaries/bottomleft.png")
-RAILS(HORIZONTAL,1)  = LoadImage("media/secondaries/horizontal.png")
-RAILS(VERTICAL,1)    = LoadImage("media/secondaries/vertical.png")
-RAILS(XCROSS,1)      = RAILS(XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
+RAILIMGS(TR_TOPLEFT,1)     = LoadImage("media/secondaries/topleft.png")
+RAILIMGS(TR_TOPRIGHT,1)    = LoadImage("media/secondaries/topright.png")
+RAILIMGS(TR_BOTTOMRIGHT,1) = LoadImage("media/secondaries/bottomright.png")
+RAILIMGS(TR_BOTTOMLEFT,1)  = LoadImage("media/secondaries/bottomleft.png")
+RAILIMGS(TR_HORIZONTAL,1)  = LoadImage("media/secondaries/horizontal.png")
+RAILIMGS(TR_VERTICAL,1)    = LoadImage("media/secondaries/vertical.png")
+RAILIMGS(TR_XCROSS,1)      = RAILIMGS(TR_XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
 
 
 
@@ -88,7 +90,7 @@ Next i
 // Kuvat sis‰lt‰v‰ taulukko. Ensimm‰isess‰ ulottuvuudessa on tieto halutusta 
 // v‰rist‰, toisessa ulottuvuudessa kuvan koko ja kolmannessa tieto, onko
 // kuva alku- vai loppup‰‰.
-Dim ENDIMAGES( 6, 2, 1 )
+Dim ENDIMAGES( 7, 2, 1 )
 
 // Vakiot selkeytt‰m‰‰n koodia. Toista ulottuvuutta varten:
 Const EI_SIZE_1x1 = 0
@@ -142,18 +144,26 @@ ENDIMAGES( TR_BROWN, EI_SIZE_2x2, EI_STARTIMG )     = LoadImage("media/2x2/start
 ENDIMAGES( TR_BROWN, EI_SIZE_2x2, EI_ENDIMG )       = LoadImage("media/2x2/end_brown.png")
 ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_STARTIMG )     = LoadImage("media/3x3/start_brown.png")
 ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_ENDIMG )       = LoadImage("media/3x3/end_brown.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_STARTIMG )   = LoadImage("media/1x1/start.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_ENDIMG )     = LoadImage("media/1x1/end.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_2x2, EI_STARTIMG )   = LoadImage("media/2x2/start.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_2x2, EI_ENDIMG )     = LoadImage("media/2x2/end.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_3x3, EI_STARTIMG )   = LoadImage("media/3x3/start.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_3x3, EI_ENDIMG )     = LoadImage("media/3x3/end.png")
 
 //================================================================================
 // Yleiset k‰yttˆliittym‰n kuvat
 //================================================================================
 
 // Kuvien m‰‰r‰
-Const IMAGES_AMOUNT = 1
+Const IMAGES_AMOUNT = 2
 
 // Kuvat sis‰lt‰v‰ taulukko
 Dim IMAGES( IMAGES_AMOUNT )
 
 // Kuvia varten vakiot
 Const IMG_GAMEAREA = 0
+Const IMG_MENUBG   = 1
 
-IMAGES( IMG_GAMEAREA ) = LoadImage("media/gamearea_background_7x7.png")
+IMAGES( IMG_GAMEAREA ) = LoadImage("media/backgrounds/gamearea_7x7.png")
+IMAGES( IMG_MENUBG )   = LoadImage("media/backgrounds/menu.png")

@@ -1,12 +1,32 @@
+//********************************************************************************
+// ColorHavoc.cb
+//
+// P‰‰ohjelma
+//********************************************************************************
+
 Const TILESIZE = 64
 Const MAPSIZE = 7
 Const BORDERSIZE = 10
 
-SCREEN TILESIZE*MAPSIZE + BORDERSIZE*2, TILESIZE*MAPSIZE + BORDERSIZE*2 + 150
+SCREEN TILESIZE*MAPSIZE + BORDERSIZE*2, TILESIZE*MAPSIZE + BORDERSIZE*2 + 280
 
+Type MAPS
+    Field folderPath As String
+    Field name       As String
+    Field author     As String
+EndType
+
+//--------------------------------------------------------------------------------
+// Includet
+//--------------------------------------------------------------------------------
 Include "Utils.cb"
 Include "Media.cb"
-Include "Tiles.cb"
+Include "Map.cb"
+Include "Menu.cb"
+Include "Editor.cb"
 Include "Game.cb"
 
-StartGame()
+//--------------------------------------------------------------------------------
+// K‰ynnistet‰‰n p‰‰valikko.
+//--------------------------------------------------------------------------------
+DrawMenu( MNU_MAIN )
