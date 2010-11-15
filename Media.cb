@@ -154,21 +154,6 @@ Const IMAGES_AMOUNT = 1
 Dim IMAGES( IMAGES_AMOUNT )
 
 // Kuvia varten vakiot
-Const IMG_GAMEAREA = 1
+Const IMG_GAMEAREA = 0
 
-IMAGES( IMG_GAMEAREA ) = MakeImage( TILESIZE*MAPSIZE+1, TILESIZE*MAPSIZE+1 )
-
-// Tehd‰‰n pelille taustataulukko
-DrawToImage IMAGES( IMG_GAMEAREA )
-
-    Color 0,0,64
-    Box 0, 0, ImageWidth( IMAGES( IMG_GAMEAREA ) ), ImageHeight( IMAGES( IMG_GAMEAREA ) )
-
-    Color cbWhite
-    For x=0 To MAPSIZE
-        Line x*TILESIZE, 0, x*TILESIZE, TILESIZE*MAPSIZE
-    Next x
-    For y=0 To MAPSIZE
-        Line 0, y*TILESIZE, TILESIZE*MAPSIZE, y*TILESIZE
-    Next y
-DrawToScreen 
+IMAGES( IMG_GAMEAREA ) = LoadImage("media/gamearea_background_7x7.png")
