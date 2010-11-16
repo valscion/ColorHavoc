@@ -13,7 +13,14 @@ Function Editor()
     
     startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 20
     
+    blockType = -1
+    blockColor = -1
+    
     Repeat
+        DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
+        
+        Color cbWhite
+        
         For x=0 To MAPSIZE-1
             For y=0 To MAPSIZE-1
                 If MouseOverTile(x,y) And blockIsValid Then
@@ -39,15 +46,15 @@ Function Editor()
         
         oldType=blockType : oldColor=blockColor : oldDirections=blockDirections : oldAmount=blockAmount
         
-        blockType = DrawSelectType( startY )
+        blockType = DrawSelectType( blockType, startY )
         
-        If blockType Then
+        If blockType<>-1 Then
             If blockType <> TYPE_ROADBLOCK Then
-                blockColor = DrawSelectColor( blockType, startY+80 )
-                If blockColor <> TR_GENERAL Then
-                    blockDirections = DrawSelectDirections( blockType, blockColor, startY+160 )
+                blockColor = DrawSelectColor( blockColor, blockType, startY+80 )
+                If blockColor <> TR_GENERAL And blockColor <> -1 Then
+                    blockDirections = DrawSelectDirections( blockDirections, blockType, blockColor, startY+160 )
                     If blockType = TILE_START Or blockType = TILE_FINISH Then
-                        blockAmount = DrawSelectAmount( startY+240 )
+                        blockAmount = DrawSelectAmount( blockAmount, startY+240 )
                     EndIf
                 EndIf
             EndIf
@@ -58,7 +65,7 @@ Function Editor()
             blockImg = AssembleBlock( blockType, blockColor, blockDirections, blockAmount )
         EndIf
         
-        DrawImage blockImg, startY+240, ScreenWidth()-BORDERSIZE-TILESIZE
+        'DrawImage blockImg, startY+240, ScreenWidth()-BORDERSIZE-TILESIZE
         
         // Tarksta, onko laatta sopiva laitettavaksi.
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections, blockAmount )
@@ -70,28 +77,129 @@ EndFunction
 //================================================================================
 // Funktio eri laattatyyppien piirt‰miseen. Palauttaa valitun laatan.
 //================================================================================
-Function DrawSelectType( _yPos )
-    Return True
+Function DrawSelectType( _current, _yPos )
+    DrawImage ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_STARTIMG ), BORDERSIZE+6, _yPos+6
+    DrawImage ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_ENDIMG ), BORDERSIZE+TILESIZE+6, _yPos+6
+    DrawImage BLOCKIMAGES( BLI_ROADBLOCK ), BORDERSIZE+TILESIZE*2, _yPos
+    DrawImage BLOCKIMAGES( BLI_PAINTER ), BORDERSIZE+TILESIZE*3, _yPos
+    DrawImage BLOCKIMAGES( BLI_DIVIDER ), BORDERSIZE+TILESIZE*4, _yPos
+    
+    Color cbGreen
+    If _current = TILE_START
+        Box BORDERSIZE, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = TILE_FINISH
+        Box BORDERSIZE+TILESIZE, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = TILE_ROADBLOCK
+        Box BORDERSIZE+TILESIZE*2, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = TILE_PAINTER
+        Box BORDERSIZE+TILESIZE*3, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = TILE_DIVIDER
+        Box BORDERSIZE+TILESIZE*4, _yPos, TILESIZE, TILESIZE, OFF
+    EndIf
+        
+    Color cbWhite
+    
+    For i=0 To 4
+        If MouseOver( BORDERSIZE+TILESIZE*i, _yPos, TILESIZE, TILESIZE ) Then
+            Box BORDERSIZE+TILESIZE*i, _yPos, TILESIZE, TILESIZE, OFF
+            If MouseHit(1) Then
+                Select i
+                    Case 0: Return TILE_START
+                    Case 1: Return TILE_FINISH
+                    Case 2: Return TILE_ROADBLOCK
+                    Case 3: Return TILE_PAINTER
+                    Case 4: Return TILE_DIVIDER
+                EndSelect
+            EndIf
+        EndIf
+    Next i
+    
+    Return _current
 EndFunction
 
 //================================================================================
 // Funktio eriv‰risten laattojen piirt‰miseen. Palauttaa valitun v‰rin.
 //================================================================================
-Function DrawSelectColor( _type, _yPos )
-    Return True
+Function DrawSelectColor( _current, _type, _yPos )
+    ret = -1
+    
+    Color cbGreen
+    If _current = 0
+        Box BORDERSIZE, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = 1
+        Box BORDERSIZE+TILESIZE, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = 2
+        Box BORDERSIZE+TILESIZE*2, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = 3
+        Box BORDERSIZE+TILESIZE*3, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = 4
+        Box BORDERSIZE+TILESIZE*4, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = 5
+        Box BORDERSIZE+TILESIZE*5, _yPos, TILESIZE, TILESIZE, OFF
+    ElseIf _current = 6
+        Box BORDERSIZE+TILESIZE*6, _yPos, TILESIZE, TILESIZE, OFF
+    EndIf
+    Color cbWhite
+    
+    
+    For i=0 To 6
+        xPos = BORDERSIZE+TILESIZE*i
+        If _type = TILE_START Or _type = TILE_FINISH Then
+            DrawImage ENDIMAGES( i, EI_SIZE_1x1, (_type=TILE_FINISH) ), xPos+6, _yPos+6
+            If MouseOver( xPos, _yPos, TILESIZE, TILESIZE ) Then
+                Box xPos, _yPos, TILESIZE, TILESIZE, OFF
+                If MouseHit(1) Then ret = i
+            EndIf
+        EndIf
+    Next i
+    If ret<>-1 Then
+        Return ret
+    Else
+        Return _current
+    EndIf
 EndFunction
 
 //================================================================================
 // Funktio eri sis‰‰n/ulos-suuntien valitsemiseen ja piirt‰miseen.
 //================================================================================
-Function DrawSelectDirections( _type, _color, _yPos )
-    Return True
+Function DrawSelectDirections( _current, _type, _color, _yPos )
+    centerX = (ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_UP )))/2
+    centerY = (ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_LEFT )))/2
+    rightX = ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_LEFT ))
+    bottomY = ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_UP ))
+    
+    If _type = TILE_START Then
+        insideImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG )
+    ElseIf _type = TILE_FINISH Then
+        insideImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_ENDIMG )
+    ElseIf _type = TILE_PAINTER Then
+        insideImg = BLOCKIMAGES( BLI_PAINTER )
+    ElseIf _type = TILE_DIVIDER Then
+        insideImg = BLOCKIMAGES( BLI_PAINTER )
+    Else
+        Return -1
+    EndIf
+    
+    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE, _yPos
+    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+5+TILESIZE, _yPos
+    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+10+TILESIZE*2, _yPos
+    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+15+TILESIZE*3, _yPos
+    
+    DrawImage BLOCKIMAGES( BLI_EXIT_UP ), BORDERSIZE+centerX, _yPos
+    DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), BORDERSIZE+5+TILESIZE+rightX, _yPos+centerY
+    DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), BORDERSIZE+10+TILESIZE*2+centerX, _yPos+bottomY
+    DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), BORDERSIZE+15+TILESIZE*3, _yPos+centerY
+    
+    DrawImage insideImg, BORDERSIZE, _yPos
+    DrawImage insideImg, BORDERSIZE+5+TILESIZE, _yPos
+    DrawImage insideImg, BORDERSIZE+10+TILESIZE*2, _yPos
+    DrawImage insideImg, BORDERSIZE+15+TILESIZE*3, _yPos
 EndFunction
 
 //================================================================================
 // Funktio alku/loppup‰‰n m‰‰r‰n valitsemiseen.
 //================================================================================
-Function DrawSelectAmount( _yPos )
+Function DrawSelectAmount( _current, _yPos )
     Return True
 EndFunction
 

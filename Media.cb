@@ -93,12 +93,12 @@ Const ENDIMAGES_AMOUNT = 48
 // Kuvat sis‰lt‰v‰ taulukko. Ensimm‰isess‰ ulottuvuudessa on tieto halutusta 
 // v‰rist‰, toisessa ulottuvuudessa kuvan koko ja kolmannessa tieto, onko
 // kuva alku- vai loppup‰‰.
-Dim ENDIMAGES( 7, 2, 1 )
+Dim ENDIMAGES( 8, 3, 2 )
 
 // Vakiot selkeytt‰m‰‰n koodia. Toista ulottuvuutta varten:
 Const EI_SIZE_1x1 = 0
 Const EI_SIZE_2x2 = 1
-Const EI_SIZE_3x3 = 3
+Const EI_SIZE_3x3 = 2
 
 // Kolmatta ulottuvuutta varten:
 Const EI_STARTIMG = 0
