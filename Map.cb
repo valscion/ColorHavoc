@@ -184,59 +184,76 @@ EndFunction
 Function AssembleBlock( _type, _color, _directions, _amount )
     img = MakeImage( TILESIZE, TILESIZE )
     
-    DrawToImage img
-        If _type = TILE_ROADBLOCK Then
-            DrawImage BLOCKIMAGES( BLI_ROADBLOCK ), 0, 0
-        Else
-            // RoadBlockille ei piirretä reunoja.
-            DrawImage BLOCKIMAGES( BLI_BORDERS ), 0, 0
+    centerX = (ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_UP )))/2
+    centerY = (ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_LEFT )))/2
+    rightX = ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_LEFT ))
+    bottomY = ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_UP ))
+    
+    If _type = TILE_ROADBLOCK Then
+        srcImg = BLOCKIMAGES( BLI_ROADBLOCK )
+        CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
+    Else
+        // RoadBlockille ei piirretä reunoja.
+        srcImg = BLOCKIMAGES( BLI_BORDERS )
+        CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
+    EndIf
+
+    If _type = TILE_START Then
+        If _amount = 1 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG )
+            CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 6, 6, Image(srcImg), Image(img)
         EndIf
-        If _type = TILE_START Then
-            If _amount = 1 Then
-                DrawImage ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG ), 6, 6
-            ElseIf _amount <= 4 Then
-                For i=0 To _amount-1
-                    xPos = 6+(i Mod 2)*28
-                    yPos = ( i>=2 )*28
-                    DrawImage ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG), xPos, yPos
-                Next i
-            ElseIf _amount <= 9 Then
-                For i=0 To _amount-1
-                    xPos = 6+(i Mod 3)*18
-                    yPos = (( i>=3 )+( i>=6 ))*18
-                    DrawImage ENDIMAGES( _color, EI_SIZE_3x3, EI_STARTIMG), xPos, yPos
-                Next i
-            Else
-                MakeError "There's an invalid block! How can it be?"+Chr(10)+Chr(13)+"This is a bug, please report it and post this code: error1"
-            EndIf
-            If BinAnd(_directions,1)=1 Then DrawImage BLOCKIMAGES( BLI_EXIT_UP ), 0, 0
-            If BinAnd(_directions,2)=2 Then DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), 0, 0
-            If BinAnd(_directions,4)=4 Then DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), 0, 0
-            If BinAnd(_directions,8)=8 Then DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), 0, 0
-        ElseIf _type = TILE_END
-            If _amount = 1 Then
-                DrawImage ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG ), 6, 6
-            ElseIf _amount <= 4 Then
-                For i=0 To _amount-1
-                    xPos = 6+(i Mod 2)*28
-                    yPos = ( i>=2 )*28
-                    DrawImage ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG), xPos, yPos
-                Next i
-            ElseIf _amount <= 9 Then
-                For i=0 To _amount-1
-                    xPos = 6+(i Mod 3)*18
-                    yPos = (( i>=3 )+( i>=6 ))*18
-                    DrawImage ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG), xPos, yPos
-                Next i
-            Else
-                MakeError "There's an invalid block! How can it be?"+Chr(10)+Chr(13)+"This is a bug, please report it and post this code: error2"
-            EndIf
-            If BinAnd(_directions,1) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_UP ), 0, 0
-            If BinAnd(_directions,2) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_RIGHT ), 0, 0
-            If BinAnd(_directions,4) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_BOTTOM ), 0, 0
-            If BinAnd(_directions,8) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_LEFT ), 0, 0
+        If _amount > 1 And _amount <= 4 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 2)*28
+                yPos = 6+( i>=2 )*28
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
         EndIf
-    DrawToScreen
+        If _amount > 4 And _amount <= 9 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_3x3, EI_STARTIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 3)*18
+                yPos = 6+( (i>=3)+(i>=6) )*18
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        
+        DrawToImage img
+            If BinAnd(_directions,1)=1 Then DrawImage BLOCKIMAGES( BLI_EXIT_UP ), centerX, 0
+            If BinAnd(_directions,2)=2 Then DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), rightX, centerY
+            If BinAnd(_directions,4)=4 Then DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), centerX, bottomY
+            If BinAnd(_directions,8)=8 Then DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), 0, centerY
+        DrawToScreen
+    ElseIf _type = TILE_FINISH
+        If _amount = 1 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_ENDIMG )
+            CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 6, 6, Image(srcImg), Image(img)
+        ElseIf _amount <= 4 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_2x2, EI_ENDIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 2)*28
+                yPos = 6+( i>=2 )*28
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        If _amount>4 And _amount <= 9 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_3x3, EI_ENDIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 3)*18
+                yPos = 6+( (i>=3)+(i>=6) )*18
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        
+        DrawToImage img
+            If BinAnd(_directions,1)=1 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_UP ), centerX, 0
+            If BinAnd(_directions,2)=2 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_RIGHT ), rightX, centerY
+            If BinAnd(_directions,4)=4 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_BOTTOM ), centerX, bottomY
+            If BinAnd(_directions,8)=8 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_LEFT ), 0, centerY
+        DrawToScreen
+    EndIf
     
     Return img
 EndFunction 

@@ -1,6 +1,16 @@
+amount = 1
+img = AssembleBlock( TILE_START, TR_BLUE, 15, amount )
 
 Repeat
-    img = AssembleBlock( TILE_START, TR_RED, 15, 1 )
+    zmove = MouseMoveZ()
+    If zmove Then
+        amount=amount+zmove
+        If amount<1 Then amount=1
+        If amount>9 Then amount=9
+        img = AssembleBlock( TILE_START, TR_BLUE, 15, amount )
+    EndIf
     DrawImage img, 10, 10
+    
+    blockType = DrawSelectType( 100 )
     DrawScreen
 Until EscapeKey() Or KeyHit(cbKeyQ)
