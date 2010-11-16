@@ -4,6 +4,37 @@
 // Yleisiä funktioita
 //********************************************************************************
 
+//===============================================================================
+// Binäärioperaatioita
+//===============================================================================
+Function BinAnd(luku1, luku2)
+    For i = 0 To 31
+        luku3 = luku3 + (((luku1 Shr i) Mod 2) And ((luku2 Shr i) Mod 2)) Shl i
+    Next i
+    Return luku3
+End Function
+ 
+Function BinNot(luku1)
+    For i = 0 To 31
+        luku3 = luku3 + (Not ((luku1 Shr i) Mod 2)) Shl i
+    Next i
+    Return luku3
+End Function
+ 
+Function BinXor(luku1, luku2)
+    For i = 0 To 31
+        luku3 = luku3 + (((luku1 Shr i) Mod 2) Xor ((luku2 Shr i) Mod 2)) Shl i
+    Next i
+    Return luku3
+End Function
+ 
+Function BinOr(luku1, luku2)
+    For i = 0 To 31
+        luku3 = luku3 + (((luku1 Shr i) Mod 2) Or ((luku2 Shr i) Mod 2)) Shl i
+    Next i
+    Return luku3
+End Function
+
 
 //===============================================================================
 // Tuplaklikkaus
@@ -36,4 +67,3 @@ EndFunction
 Function MouseOver(x,y,w,h)'x ja y akseli, w leveys, h pituus.
     Return (MouseX() > x And MouseY() > y And Mousex() < x + w And Mousey() < y + h)
 EndFunction 
-

@@ -15,7 +15,7 @@ Const MNU_LOAD       = 3
 //================================================================================
 Function DrawMenu( _menu = MNU_MAIN )
     Repeat
-        DrawImage IMAGES( IMG_MENUBG ), 0, 0
+        DrawImage GUIIMAGES( GUI_MENUBG ), 0, 0
         
         If DrawMenuItem( "Start game!", 100 ) Then
             StartGame()
@@ -25,7 +25,7 @@ Function DrawMenu( _menu = MNU_MAIN )
             Exit
         EndIf
         DrawScreen
-    Forever
+    Until EscapeKey() Or KeyHit(cbKeyQ)
 EndFunction 
 
 

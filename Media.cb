@@ -18,7 +18,6 @@ Const TR_BROWN   = 6
 Const TR_GENERAL = 7
 
 
-
 //================================================================================
 // Ladataan raiteet muistiin
 //================================================================================
@@ -57,8 +56,6 @@ RAILIMGS(TR_HORIZONTAL,1)  = LoadImage("media/secondaries/horizontal.png")
 RAILIMGS(TR_VERTICAL,1)    = LoadImage("media/secondaries/vertical.png")
 RAILIMGS(TR_XCROSS,1)      = RAILIMGS(TR_XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
 
-
-
 //================================================================================
 // Junien lataus muistiin ja junien kokoelman m‰‰rittely.
 //================================================================================
@@ -67,8 +64,11 @@ Type TRAINS
     Field trainColor  // V‰ri
 EndType
 
+// Junakuvien m‰‰r‰
+Const TRAINOBJECTS_AMOUNT = 7
+
 // Junien objektit sis‰lt‰v‰ taulukko
-Dim TRAINOBJECTS( 6 )
+Dim TRAINOBJECTS( TRAINOBJECTS_AMOUNT-1 )
 
 TRAINOBJECTS( TR_RED )    = LoadObject("media/train_red.png", 72)
 TRAINOBJECTS( TR_YELLOW ) = LoadObject("media/train_yellow.png", 72)
@@ -87,6 +87,9 @@ Next i
 // Aloitus- ja lopetuskuvat
 //================================================================================
 
+// Aloitus- ja lopetuskuvien m‰‰r‰. (8x3x2)
+Const ENDIMAGES_AMOUNT = 48
+
 // Kuvat sis‰lt‰v‰ taulukko. Ensimm‰isess‰ ulottuvuudessa on tieto halutusta 
 // v‰rist‰, toisessa ulottuvuudessa kuvan koko ja kolmannessa tieto, onko
 // kuva alku- vai loppup‰‰.
@@ -101,7 +104,12 @@ Const EI_SIZE_3x3 = 3
 Const EI_STARTIMG = 0
 Const EI_ENDIMG   = 1
 
-
+ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_STARTIMG )   = LoadImage("media/1x1/start.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_ENDIMG )     = LoadImage("media/1x1/end.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_2x2, EI_STARTIMG )   = LoadImage("media/2x2/start.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_2x2, EI_ENDIMG )     = LoadImage("media/2x2/end.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_3x3, EI_STARTIMG )   = LoadImage("media/3x3/start.png")
+ENDIMAGES( TR_GENERAL, EI_SIZE_3x3, EI_ENDIMG )     = LoadImage("media/3x3/end.png")
 ENDIMAGES( TR_RED, EI_SIZE_1x1, EI_STARTIMG )       = LoadImage("media/1x1/start_red.png")
 ENDIMAGES( TR_RED, EI_SIZE_1x1, EI_ENDIMG )         = LoadImage("media/1x1/end_red.png")
 ENDIMAGES( TR_RED, EI_SIZE_2x2, EI_STARTIMG )       = LoadImage("media/2x2/start_red.png")
@@ -144,26 +152,57 @@ ENDIMAGES( TR_BROWN, EI_SIZE_2x2, EI_STARTIMG )     = LoadImage("media/2x2/start
 ENDIMAGES( TR_BROWN, EI_SIZE_2x2, EI_ENDIMG )       = LoadImage("media/2x2/end_brown.png")
 ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_STARTIMG )     = LoadImage("media/3x3/start_brown.png")
 ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_ENDIMG )       = LoadImage("media/3x3/end_brown.png")
-ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_STARTIMG )   = LoadImage("media/1x1/start.png")
-ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_ENDIMG )     = LoadImage("media/1x1/end.png")
-ENDIMAGES( TR_GENERAL, EI_SIZE_2x2, EI_STARTIMG )   = LoadImage("media/2x2/start.png")
-ENDIMAGES( TR_GENERAL, EI_SIZE_2x2, EI_ENDIMG )     = LoadImage("media/2x2/end.png")
-ENDIMAGES( TR_GENERAL, EI_SIZE_3x3, EI_STARTIMG )   = LoadImage("media/3x3/start.png")
-ENDIMAGES( TR_GENERAL, EI_SIZE_3x3, EI_ENDIMG )     = LoadImage("media/3x3/end.png")
+
+//================================================================================
+// Muiden laattojen kuvat erillisin‰
+//================================================================================
+
+// Laattakuvien m‰‰r‰
+Const BLOCKIMAGES_AMOUNT = 12
+
+// Kuvat sis‰lt‰v‰ taulukko
+Dim BLOCKIMAGES( BLOCKIMAGES_AMOUNT-1 )
+
+// Kuvia varten vakiot
+Const BLI_BORDERS           = 0
+Const BLI_ENTRANCE_UP       = 1
+Const BLI_ENTRANCE_RIGHT    = 2
+Const BLI_ENTRANCE_BOTTOM   = 3
+Const BLI_ENTRANCE_LEFT     = 4
+Const BLI_EXIT_UP           = 5
+Const BLI_EXIT_RIGHT        = 6
+Const BLI_EXIT_BOTTOM       = 7
+Const BLI_EXIT_LEFT         = 8
+Const BLI_ROADBLOCK         = 9
+Const BLI_PAINTER           = 10
+Const BLI_DIVIDER           = 11
+
+BLOCKIMAGES( BLI_BORDERS )          = LoadImage("media/blocks/borders.png")
+BLOCKIMAGES( BLI_ENTRANCE_UP )      = LoadImage("media/blocks/entrance_up.png")
+BLOCKIMAGES( BLI_ENTRANCE_RIGHT )   = LoadImage("media/blocks/entrance_right.png")
+BLOCKIMAGES( BLI_ENTRANCE_BOTTOM )  = LoadImage("media/blocks/entrance_bottom.png")
+BLOCKIMAGES( BLI_ENTRANCE_LEFT )    = LoadImage("media/blocks/entrance_left.png")
+BLOCKIMAGES( BLI_EXIT_UP )          = LoadImage("media/blocks/exit_up.png")
+BLOCKIMAGES( BLI_EXIT_RIGHT )       = LoadImage("media/blocks/exit_right.png")
+BLOCKIMAGES( BLI_EXIT_BOTTOM )      = LoadImage("media/blocks/exit_bottom.png")
+BLOCKIMAGES( BLI_EXIT_LEFT )        = LoadImage("media/blocks/exit_left.png")
+BLOCKIMAGES( BLI_ROADBLOCK )        = LoadImage("media/blocks/roadblock.png")
+BLOCKIMAGES( BLI_PAINTER )          = LoadImage("media/blocks/unknown.png")
+BLOCKIMAGES( BLI_DIVIDER )          = LoadImage("media/blocks/unknown.png")
 
 //================================================================================
 // Yleiset k‰yttˆliittym‰n kuvat
 //================================================================================
 
 // Kuvien m‰‰r‰
-Const IMAGES_AMOUNT = 2
+Const GUIIMAGES_AMOUNT = 2
 
 // Kuvat sis‰lt‰v‰ taulukko
-Dim IMAGES( IMAGES_AMOUNT )
+Dim GUIIMAGES( GUIIMAGES_AMOUNT-1 )
 
 // Kuvia varten vakiot
-Const IMG_GAMEAREA = 0
-Const IMG_MENUBG   = 1
+Const GUI_GAMEAREA = 0
+Const GUI_MENUBG   = 1
 
-IMAGES( IMG_GAMEAREA ) = LoadImage("media/backgrounds/gamearea_7x7.png")
-IMAGES( IMG_MENUBG )   = LoadImage("media/backgrounds/menu.png")
+GUIIMAGES( GUI_GAMEAREA ) = LoadImage("media/backgrounds/gamearea_7x7.png")
+GUIIMAGES( GUI_MENUBG )   = LoadImage("media/backgrounds/menu.png")

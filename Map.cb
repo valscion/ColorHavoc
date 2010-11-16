@@ -27,8 +27,10 @@ Type SPECIALBLOCKS
     Field tileX      // Palasen x-tilekoordinaatti
     Field tileY      // Palasen y-tilekoordinaatti
     Field blockType  // Palasen tyyppi
+    Field blockColor // Palasen väri, kts. Media.cb ja yleiset värien vakiot.
     Field directions // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
     Field amount     // Palasen sisältämä määrä, esim. lähtevien junien määrä.
+    Field img        // Kasattu kuva
 EndType
 
 // Taulukko, joka sisältää tiedot kaikista mahdollisista pisteistä joihin tarrautua.
@@ -52,9 +54,9 @@ x2=0 : y2=0
 
 
 //================================================================================
-// Yksittäisen laatan piirto
+// Yksittäisen raiteen piirto
 //================================================================================
-Function DrawTile( x, y )
+Function DrawTrack( x, y )
     // Piirretään palaset. Ovela logiikka, jolla tarkistetaan,
     // ovatko molemmat kuvat päällepiirrettäviä (eli vastakkaiset
     // käännökset). If-lause on vähän turhan pitkä :/
@@ -69,15 +71,49 @@ Function DrawTile( x, y )
 EndFunction
 
 //================================================================================
+// Piirretään kaikki erikoispalaset.
+//================================================================================
+Function DrawBlocks()
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        img = False
+        If sb\blockType = TILE_START Then
+            img = ENDIMAGES( sb\blockColor, EI_SIZE_1x1, EI_STARTIMG )
+        ElseIf sb\blockType = TILE_FINISH Then
+            img = ENDIMAGES( sb\blockColor, EI_SIZE_1x1, EI_ENDIMG )
+        EndIf
+        
+        If img Then
+            DrawImage img, x*TILESIZE+BORDERSIZE, y*TILESIZE+BORDERSIZE
+        EndIf
+    Next sb
+EndFunction
+
+//================================================================================
 // Yksittäisen raiteen poisto.
 //================================================================================
-Function DeleteTrack( x, y )
-    RAILS( x, y, 0 ) = TR_EMPTY
-    RAILS( x, y, 1 ) = TR_EMPTY
+Function DeleteTrack( _tileX, _tileY )
+    RAILS( _tileX, _tileY, 0 ) = TR_EMPTY
+    RAILS( _tileX, _tileY, 1 ) = TR_EMPTY
     
     Return True
 EndFunction
 
+//================================================================================
+// Palikan poisto (kts. SPECIALBLOCKS-kokoelma).
+// Palauttaa False, jos poisto epäonnistui (palasta ei löytynyt koordinaateista),
+// muulloin True.
+//================================================================================
+Function DeleteBlock( _tileX, _tileY )
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\tileX = _tileX And sb\tileY = _tileY Then
+            If sb\img Then DeleteImage sb\img
+            Delete sb
+            Return True
+        EndIf
+    Next sb
+    
+    Return False
+EndFunction
 
 //===============================================================================
 // Onko hiiri laatan päällä
@@ -101,4 +137,106 @@ Function TileType( _tileX, _tileY )
     Next sb
     
     Return TILE_EMPTY
+EndFunction 
+
+//===============================================================================
+// Onko laatta sääntöjen mukainen. Huomaa, että jos funktiolle annetaan
+// parametrina raide, on palautusarvo False.
+//===============================================================================
+Function CheckBlockValidity( _type, _color, _directions, _amount )
+
+    If _type = TILE_TRACK Then Return False 
+    If _type = TILE_EMPTY Then Return True
+    If _type = TILE_ROADBLOCK Then Return True
+    
+    If _color = TR_GENERAL Or _color > TR_BROWN Then Return False
+    
+    If _type = TILE_PAINTER Then Return True
+    If _type = TILE_DIVIDER Then Return True
+    
+    
+    If _amount > 9 Or _amount < 1 Then Return False
+    
+    If _type = TILE_START
+        If BinAnd(_directions,1) Then
+            If BinAnd(_directions,2) Or BinAnd(_directions,4) Or BinAnd(_directions,8) Then Return False
+        ElseIf BinAnd(_directions,2) Then
+            If BinAnd(_directions,1) Or BinAnd(_directions,4) Or BinAnd(_directions,8) Then Return False
+        ElseIf BinAnd(_directions,4) Then
+            If BinAnd(_directions,1) Or BinAnd(_directions,2) Or BinAnd(_directions,8) Then Return False
+        ElseIf BinAnd(_directions,8) Then
+            If BinAnd(_directions,1) Or BinAnd(_directions,2) Or BinAnd(_directions,4) Then Return False
+        EndIf
+        Return True
+    EndIf
+        
+    If _type = TILE_FINISH Then
+        If _directions=1 Or _directions=2 Or _directions=4 Or _directions=8 Then Return True
+        Return False
+    EndIf
+    
+    Return False
+EndFunction
+
+//===============================================================================
+// Funktio, joka kokoaa laatan ja palauttaa luodun kuvan.
+//===============================================================================
+Function AssembleBlock( _type, _color, _directions, _amount )
+    img = MakeImage( TILESIZE, TILESIZE )
+    
+    DrawToImage img
+        If _type = TILE_ROADBLOCK Then
+            DrawImage BLOCKIMAGES( BLI_ROADBLOCK ), 0, 0
+        Else
+            // RoadBlockille ei piirretä reunoja.
+            DrawImage BLOCKIMAGES( BLI_BORDERS ), 0, 0
+        EndIf
+        If _type = TILE_START Then
+            If _amount = 1 Then
+                DrawImage ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG ), 6, 6
+            ElseIf _amount <= 4 Then
+                For i=0 To _amount-1
+                    xPos = 6+(i Mod 2)*28
+                    yPos = ( i>=2 )*28
+                    DrawImage ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG), xPos, yPos
+                Next i
+            ElseIf _amount <= 9 Then
+                For i=0 To _amount-1
+                    xPos = 6+(i Mod 3)*18
+                    yPos = (( i>=3 )+( i>=6 ))*18
+                    DrawImage ENDIMAGES( _color, EI_SIZE_3x3, EI_STARTIMG), xPos, yPos
+                Next i
+            Else
+                MakeError "There's an invalid block! How can it be?"+Chr(10)+Chr(13)+"This is a bug, please report it and post this code: error1"
+            EndIf
+            If BinAnd(_directions,1)=1 Then DrawImage BLOCKIMAGES( BLI_EXIT_UP ), 0, 0
+            If BinAnd(_directions,2)=2 Then DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), 0, 0
+            If BinAnd(_directions,4)=4 Then DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), 0, 0
+            If BinAnd(_directions,8)=8 Then DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), 0, 0
+        ElseIf _type = TILE_END
+            If _amount = 1 Then
+                DrawImage ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG ), 6, 6
+            ElseIf _amount <= 4 Then
+                For i=0 To _amount-1
+                    xPos = 6+(i Mod 2)*28
+                    yPos = ( i>=2 )*28
+                    DrawImage ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG), xPos, yPos
+                Next i
+            ElseIf _amount <= 9 Then
+                For i=0 To _amount-1
+                    xPos = 6+(i Mod 3)*18
+                    yPos = (( i>=3 )+( i>=6 ))*18
+                    DrawImage ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG), xPos, yPos
+                Next i
+            Else
+                MakeError "There's an invalid block! How can it be?"+Chr(10)+Chr(13)+"This is a bug, please report it and post this code: error2"
+            EndIf
+            If BinAnd(_directions,1) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_UP ), 0, 0
+            If BinAnd(_directions,2) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_RIGHT ), 0, 0
+            If BinAnd(_directions,4) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_BOTTOM ), 0, 0
+            If BinAnd(_directions,8) Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_LEFT ), 0, 0
+        EndIf
+    DrawToScreen
+    
+    Return img
 EndFunction 

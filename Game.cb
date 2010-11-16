@@ -12,7 +12,7 @@
 Function StartGame()
     Repeat
         // Piirret‰‰n taustakuva pelialueelle
-        DrawImage IMAGES( IMG_GAMEAREA ), BORDERSIZE, BORDERSIZE
+        DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
     
         ClsColor 64,0,0
         EditGameMap()
@@ -61,11 +61,8 @@ EndFunction
 Function DrawGameMap()
 
     // Pit‰‰ tehd‰ tuplaklikkaustarkistus ennen for-looppia
-    If MouseDoubleClick() Then
-        doubleclicked = True
-    Else
-        doubleclicked = False
-    EndIf
+    If MouseDoubleClick() Then doubleclicked = True Else doubleclicked = False
+    
     
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
@@ -80,14 +77,14 @@ Function DrawGameMap()
                         RAILS(x,y,1) = tmp
                     EndIf
                 ElseIf MouseHit(2) Then
-                    // Hiiren kakkospainiketta (yleens‰ vasenta) painiketta painettiin.
+                    // Hiiren kakkospainiketta (yleens‰ oikeata) painiketta painettiin.
                     // Poistetaan hiiren alla oleva tile.
                     DeleteTrack(x,y)
                 EndIf
             EndIf
             
             // Piirret‰‰n palanen n‰ytˆlle
-            DrawTile(x,y)
+            DrawTrack(x,y)
         Next y
     Next x
 EndFunction 

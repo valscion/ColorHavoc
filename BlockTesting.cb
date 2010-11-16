@@ -1,0 +1,6 @@
+
+Repeat
+    img = AssembleBlock( TILE_START, TR_RED, 15, 1 )
+    DrawImage img, 10, 10
+    DrawScreen
+Until EscapeKey() Or KeyHit(cbKeyQ)

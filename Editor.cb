@@ -4,11 +4,175 @@
 // Karttaeditorin toteutus
 //********************************************************************************
 
-
 //================================================================================
 // Editorin p‰‰silmukka
 //================================================================================
 Function Editor()
+    currentMap$ = getUniqueFolderPath() // Random-karttapolku
+    blockIsValid = False // Onko palanen oikeanlainen
     
+    startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 20
     
+    Repeat
+        For x=0 To MAPSIZE-1
+            For y=0 To MAPSIZE-1
+                If MouseOverTile(x,y) And blockIsValid Then
+                    If MouseHit(1) Then
+                        If TileType(x,y) = TILE_EMPTY Then
+                            // Lis‰t‰‰n uusi palanen, jos paikalla ei ole viel‰ mit‰‰n.
+                            newSB.SPECIALBLOCKS = New(SPECIALBLOCKS)
+                            AddBlock( x, y, ConvertToInteger(newSB), blockType, blockColor, blockDirections, blockAmount )
+                        Else
+                            // Vaihda olemassaolevan palasen tietoja
+                            ChangeBlock( x, y, blockType, blockColor, blockDirections, blockAmount )
+                        EndIf
+                    ElseIf MouseHit(2) Then
+                        // Hiiren kakkospainike kumittaa.
+                        DeleteBlock(x,y) 'Map.cb
+                    EndIf
+                EndIf
+            Next y
+        Next x
+        
+        // Piirr‰ kartta
+        DrawBlocks() 'Map.cb
+        
+        oldType=blockType : oldColor=blockColor : oldDirections=blockDirections : oldAmount=blockAmount
+        
+        blockType = DrawSelectType( startY )
+        
+        If blockType Then
+            If blockType <> TYPE_ROADBLOCK Then
+                blockColor = DrawSelectColor( blockType, startY+80 )
+                If blockColor <> TR_GENERAL Then
+                    blockDirections = DrawSelectDirections( blockType, blockColor, startY+160 )
+                    If blockType = TILE_START Or blockType = TILE_FINISH Then
+                        blockAmount = DrawSelectAmount( startY+240 )
+                    EndIf
+                EndIf
+            EndIf
+        EndIf
+        
+        // Tehd‰‰n uuden laatan kuva, jos jotain osaa on vaihdettu.
+        If oldType<>blockType Or oldColor<>blockColor Or oldDirections<>blockDirections Or oldAmount<>blockAmount Then
+            blockImg = AssembleBlock( blockType, blockColor, blockDirections, blockAmount )
+        EndIf
+        
+        DrawImage blockImg, startY+240, ScreenWidth()-BORDERSIZE-TILESIZE
+        
+        // Tarksta, onko laatta sopiva laitettavaksi.
+        blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections, blockAmount )
+        
+        DrawScreen
+    Until EscapeKey() Or KeyHit(cbKeyQ)
+EndFunction 
+
+//================================================================================
+// Funktio eri laattatyyppien piirt‰miseen. Palauttaa valitun laatan.
+//================================================================================
+Function DrawSelectType( _yPos )
+    Return True
+EndFunction
+
+//================================================================================
+// Funktio eriv‰risten laattojen piirt‰miseen. Palauttaa valitun v‰rin.
+//================================================================================
+Function DrawSelectColor( _type, _yPos )
+    Return True
+EndFunction
+
+//================================================================================
+// Funktio eri sis‰‰n/ulos-suuntien valitsemiseen ja piirt‰miseen.
+//================================================================================
+Function DrawSelectDirections( _type, _color, _yPos )
+    Return True
+EndFunction
+
+//================================================================================
+// Funktio alku/loppup‰‰n m‰‰r‰n valitsemiseen.
+//================================================================================
+Function DrawSelectAmount( _yPos )
+    Return True
+EndFunction
+
+//================================================================================
+// Lis‰‰ palanen kokoelmaan.
+//================================================================================
+Function AddBlock( _tileX, _tileY, _ptr, _type, _color, _directions, _amount )
+    newSB.SPECIALBLOCKS = ConvertToType(_ptr)
+    
+    newSB\blockType = _type
+    
+    // Tarkistetaan, ettei lis‰t‰ turhia tietoja palasille, jotka eiv‰t
+    // sit‰ tietoa tarvitse.
+    If _type = TYPE_ROADBLOCK Then
+        _color = TR_GENERAL
+        _directions = 0
+        _amount = 0
+    ElseIf _type = TYPE_DIVIDER Then
+        _color = TR_GENERAL
+        _amount = 0
+    ElseIf _type = TYPE_PAINTER Then
+        _amount = 0
+    EndIf
+    
+    newSB\blockColor = _color
+    newSB\directions = _directions
+    newSB\amount = _amount
+    
+EndFunction
+
+//================================================================================
+// Muuta olemassaolevaa palasta. Jos palasta ei ole olemassa, palauttaa False.
+//================================================================================
+Function ChangeBlock( _tileX, _tileY, _type, _color, _directions, _amount )
+    // Tarkistetaan, ettei lis‰t‰ turhia tietoja palasille, jotka eiv‰t
+    // sit‰ tietoa tarvitse.
+    If _type = TYPE_ROADBLOCK Then
+        _color = TR_GENERAL
+        _directions = 0
+        _amount = 0
+    ElseIf _type = TYPE_DIVIDER Then
+        _color = TR_GENERAL
+        _amount = 0
+    ElseIf _type = TYPE_PAINTER Then
+        _amount = 0
+    EndIf
+    
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\tileX = _tileX And sb\tileY = _tileY Then
+            sb\blockType = _type
+            sb\blockColor = _color
+            sb\directions = _directions
+            sb\amount = _amount
+            Return True
+        EndIf
+    Next sb
+    
+    Return False
+EndFunction
+
+
+//================================================================================
+// Funktio palauttaa randomilla tehdyn kansiopolun uudelle kartalle
+// v‰liaikaistallennuksia varten.
+//================================================================================
+Function getUniqueFolderPath()
+    folder$ = "saves/tmp/"
+    If Not IsDirectory("saves") Then MakeDir "saves"
+    If Not IsDirectory("saves/tmp") Then MakeDir "saves/tmp"
+    If IsDirectory("saves")=0 Or IsDirectory("saves/tmp")=0 Then
+        MakeError "Problem creating temporary directory!"
+    EndIf
+    
+    randSeed$ = "abcdefghijklmnopqrstuvwxyz1234567890"
+    
+    Repeat
+        randend$ = ""
+        For i=0 To 12
+            randend$ = randend$ + Mid( randSeed$, Rand( 1, Len(randSeed$) ), 1 )
+        Next i
+    Until Not FileExists( folder$ + randend$ + "-tmp.CoH" )
+    
+    Return folder$ + randend$ + "-tmp.CoH"
 EndFunction 
