@@ -97,9 +97,8 @@ EndFunction
 Function DeleteBlock( _tileX, _tileY )
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
         If sb\tileX = _tileX And sb\tileY = _tileY Then
-            If sb\img Then DeleteImage sb\img
+            If sb\img<>0 Then DeleteImage sb\img
             Delete sb
-            Return True
         EndIf
     Next sb
     
@@ -117,7 +116,7 @@ EndFunction
 // Tarkista laatan tyyppi
 //===============================================================================
 Function TileType( _tileX, _tileY )
-    If RAILS( _tileX, _tileY,1 ) <> TR_EMPTY Then
+    If RAILS( _tileX, _tileY,1 ) Or RAILS( _tileX, _tileY, 0 ) <> TR_EMPTY Then
         Return TILE_TRACK
     EndIf
     

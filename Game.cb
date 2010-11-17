@@ -63,7 +63,6 @@ Function DrawGameMap()
     // Pit‰‰ tehd‰ tuplaklikkaustarkistus ennen for-looppia
     If MouseDoubleClick() Then doubleclicked = True Else doubleclicked = False
     
-    
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
             If TileType(x,y) = TILE_TRACK And MouseOverTile(x,y) Then

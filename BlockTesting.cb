@@ -11,6 +11,5 @@ Repeat
     EndIf
     DrawImage img, 10, 10
     
-    blockType = DrawSelectType( 100 )
     DrawScreen
 Until EscapeKey() Or KeyHit(cbKeyQ)

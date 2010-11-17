@@ -21,7 +21,6 @@ Function Editor()
         DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
         
         Color cbWhite
-        
         For x=0 To MAPSIZE-1
             For y=0 To MAPSIZE-1
                 If MouseOverTile(x,y) And blockIsValid Then
@@ -70,7 +69,6 @@ Function Editor()
         
         // Tarksta, onko laatta sopiva laitettavaksi.
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections, blockAmount )
-        
         SetWindow "Valid: " + blockIsValid
         
         DrawScreen
@@ -223,12 +221,21 @@ Function DrawSelectDirections( _current, _type, _color, _yPos )
         If MouseOver( BORDERSIZE+TILESIZE*i-2+i*5, _yPos-2, TILESIZE+4, TILESIZE+4 ) Then
             Box BORDERSIZE+TILESIZE*i-2+i*5, _yPos-2, TILESIZE+4, TILESIZE+4, OFF
             If MouseHit(1) Then
-                Select i
-                    Case 0: bitmask = BinXor( bitmask, 1 )
-                    Case 1: bitmask = BinXor( bitmask, 2 )
-                    Case 2: bitmask = BinXor( bitmask, 4 )
-                    Case 3: bitmask = BinXor( bitmask, 8 )
-                EndSelect
+                If _type = TILE_FINISH Then
+                    Select i
+                        Case 0: bitmask = BinXor( bitmask, 1 )
+                        Case 1: bitmask = BinXor( bitmask, 2 )
+                        Case 2: bitmask = BinXor( bitmask, 4 )
+                        Case 3: bitmask = BinXor( bitmask, 8 )
+                    EndSelect
+                ElseIf _type = TILE_START Then
+                    Select i
+                        Case 0: bitmask = 1
+                        Case 1: bitmask = 2
+                        Case 2: bitmask = 4
+                        Case 3: bitmask = 8
+                    EndSelect
+                EndIf
             EndIf
         EndIf
 
@@ -273,7 +280,7 @@ Function AddBlock( _tileX, _tileY, _ptr, _type, _color, _directions, _amount, _i
     newSB\amount = _amount
     
     If _img<>0 Then 
-        newSB\img = _img
+        newSB\img = CloneImage( _img )
     Else
         newSB\img = AssembleBlock( _type, _color, _directions, _amount )
     EndIf
