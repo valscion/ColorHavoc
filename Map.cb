@@ -75,16 +75,7 @@ EndFunction
 //================================================================================
 Function DrawBlocks()
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
-        img = False
-        If sb\blockType = TILE_START Then
-            img = ENDIMAGES( sb\blockColor, EI_SIZE_1x1, EI_STARTIMG )
-        ElseIf sb\blockType = TILE_FINISH Then
-            img = ENDIMAGES( sb\blockColor, EI_SIZE_1x1, EI_ENDIMG )
-        EndIf
-        
-        If img Then
-            DrawImage img, x*TILESIZE+BORDERSIZE, y*TILESIZE+BORDERSIZE
-        EndIf
+        DrawImage sb\img, sb\tileX*TILESIZE+BORDERSIZE, sb\tileY*TILESIZE+BORDERSIZE
     Next sb
 EndFunction
 
@@ -167,11 +158,11 @@ Function CheckBlockValidity( _type, _color, _directions, _amount )
         ElseIf BinAnd(_directions,8) Then
             If BinAnd(_directions,1) Or BinAnd(_directions,2) Or BinAnd(_directions,4) Then Return False
         EndIf
-        Return True
+        Return False
     EndIf
         
     If _type = TILE_FINISH Then
-        If _directions=1 Or _directions=2 Or _directions=4 Or _directions=8 Then Return True
+        If BinAnd(_directions,1) Or BinAnd(_directions,2) Or BinAnd(_directions,4) Or BinAnd(_directions,8) Then Return True
         Return False
     EndIf
     
