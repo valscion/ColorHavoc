@@ -11,13 +11,14 @@ Function Editor()
     currentMap$ = getUniqueFolderPath() // Random-karttapolku
     blockIsValid = False // Onko palanen oikeanlainen
     
-    startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 20
+    startY = TILESIZE*MAPSIZE + BORDERSIZE*2
     
     blockType = -1
     
     blockImg = MakeImage( TILESIZE, TILESIZE ) // Aluksi tyhj‰ kuva, ettei kaadu drawimageen.
     
     Repeat
+        ClsColor cbBlack
         DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
         
         Color cbWhite
@@ -48,24 +49,45 @@ Function Editor()
         
         blockType = DrawSelectType( blockType, startY )
         
+        If oldType=TILE_FINISH And blockType=TILE_START Then blockDirections=0
+        
         If blockType<>-1 Then
             If blockType <> TILE_ROADBLOCK Then
                 blockColor = DrawSelectColor( blockColor, blockType, startY+80 )
                 If blockColor <> TR_GENERAL And blockColor <> -1 Then
                     blockDirections = DrawSelectDirections( blockDirections, blockType, blockColor, startY+160 )
                     If blockType = TILE_START Or blockType = TILE_FINISH Then
-                        blockAmount = DrawSelectAmount( blockAmount, startY+160 )
+                        blockAmount = 1
                     EndIf
                 EndIf
             EndIf
         EndIf
+        
+        // Clear-nappula, joka tyhjent‰‰ kasatun laatan
+        If MouseOver( ScreenWidth()-BORDERSIZE-25, startY+160, 25, TILESIZE ) Then
+            DrawImage EDITORIMAGES( EDI_CLEARASSEMB_SEL ), ScreenWidth()-BORDERSIZE-25, startY+160
+            If MouseHit(1) Then
+                blockType=TILE_EMPTY
+                blockColor=TR_GENERAL
+                blockDirections=0
+                blockAmount=0
+            EndIf
+        Else
+            DrawImage EDITORIMAGES( EDI_CLEARASSEMB_UNSEL ), ScreenWidth()-BORDERSIZE-25, startY+160
+        EndIf
+        
+        // Nappuloiden piirto ja napautuksien tarkistus
+        newClicked  = DrawEditorButton( EDI_NEW_UNSEL,  BORDERSIZE, startY+250 )
+        loadClicked = DrawEditorButton( EDI_LOAD_UNSEL, BORDERSIZE+100, startY+250 )
+        saveClicked = DrawEditorButton( EDI_SAVE_UNSEL, BORDERSIZE+200, startY+250 )
+        testClicked = DrawEditorButton( EDI_TEST_UNSEL, BORDERSIZE+300, startY+250 )
         
         // Tehd‰‰n uuden laatan kuva, jos jotain osaa on vaihdettu.
         If oldType<>blockType Or oldColor<>blockColor Or oldDirections<>blockDirections Or oldAmount<>blockAmount Then
             blockImg = AssembleBlock( blockType, blockColor, blockDirections, blockAmount )
         EndIf
         
-        DrawImage blockImg, ScreenWidth()-BORDERSIZE-TILESIZE, startY+160
+        DrawImage blockImg, ScreenWidth()-BORDERSIZE-TILESIZE-28, startY+160
         
         // Tarksta, onko laatta sopiva laitettavaksi.
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections, blockAmount )
@@ -82,8 +104,8 @@ Function DrawSelectType( _current, _yPos )
     DrawImage ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_STARTIMG ), BORDERSIZE+6, _yPos+6
     DrawImage ENDIMAGES( TR_GENERAL, EI_SIZE_1x1, EI_ENDIMG ), BORDERSIZE+TILESIZE+6, _yPos+6
     DrawImage BLOCKIMAGES( BLI_ROADBLOCK ), BORDERSIZE+TILESIZE*2, _yPos
-    DrawImage BLOCKIMAGES( BLI_PAINTER ), BORDERSIZE+TILESIZE*3, _yPos
-    DrawImage BLOCKIMAGES( BLI_DIVIDER ), BORDERSIZE+TILESIZE*4, _yPos
+    'DrawImage BLOCKIMAGES( BLI_PAINTER ), BORDERSIZE+TILESIZE*3, _yPos
+    'DrawImage BLOCKIMAGES( BLI_DIVIDER ), BORDERSIZE+TILESIZE*4, _yPos
     
     Color cbGreen
     If _current = TILE_START
@@ -92,15 +114,15 @@ Function DrawSelectType( _current, _yPos )
         Box BORDERSIZE+TILESIZE, _yPos, TILESIZE, TILESIZE, OFF
     ElseIf _current = TILE_ROADBLOCK
         Box BORDERSIZE+TILESIZE*2, _yPos, TILESIZE, TILESIZE, OFF
-    ElseIf _current = TILE_PAINTER
-        Box BORDERSIZE+TILESIZE*3, _yPos, TILESIZE, TILESIZE, OFF
-    ElseIf _current = TILE_DIVIDER
-        Box BORDERSIZE+TILESIZE*4, _yPos, TILESIZE, TILESIZE, OFF
+    'ElseIf _current = TILE_PAINTER
+    '    Box BORDERSIZE+TILESIZE*3, _yPos, TILESIZE, TILESIZE, OFF
+    'ElseIf _current = TILE_DIVIDER
+    '    Box BORDERSIZE+TILESIZE*4, _yPos, TILESIZE, TILESIZE, OFF
     EndIf
         
     Color cbWhite
     
-    For i=0 To 4
+    For i=0 To 2 '4
         If MouseOver( BORDERSIZE+TILESIZE*i, _yPos, TILESIZE, TILESIZE ) Then
             Box BORDERSIZE+TILESIZE*i, _yPos, TILESIZE, TILESIZE, OFF
             If MouseHit(1) Then
@@ -108,8 +130,8 @@ Function DrawSelectType( _current, _yPos )
                     Case 0: Return TILE_START
                     Case 1: Return TILE_FINISH
                     Case 2: Return TILE_ROADBLOCK
-                    Case 3: Return TILE_PAINTER
-                    Case 4: Return TILE_DIVIDER
+                    'Case 3: Return TILE_PAINTER
+                    'Case 4: Return TILE_DIVIDER
                 EndSelect
             EndIf
         EndIf
@@ -161,45 +183,54 @@ EndFunction
 // Funktio eri sis‰‰n/ulos-suuntien valitsemiseen ja piirt‰miseen.
 //================================================================================
 Function DrawSelectDirections( _current, _type, _color, _yPos )
-    centerX = (ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_UP )))/2
-    centerY = (ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_LEFT )))/2
-    rightX = ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_LEFT ))
-    bottomY = ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_UP ))
+    RemStart 
+    /*
+        centerX = (ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_UP )))/2
+        centerY = (ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_LEFT )))/2
+        rightX = ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_LEFT ))
+        bottomY = ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_UP ))
+        
+        If _type = TILE_START Then
+            insideImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG )
+        ElseIf _type = TILE_FINISH Then
+            insideImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_ENDIMG )
+        ElseIf _type = TILE_PAINTER Then
+            insideImg = BLOCKIMAGES( BLI_PAINTER )
+        ElseIf _type = TILE_DIVIDER Then
+            insideImg = BLOCKIMAGES( BLI_PAINTER )
+        Else
+            Return -1
+        EndIf
+        
+        DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE, _yPos
+        DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+5+TILESIZE, _yPos
+        DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+10+TILESIZE*2, _yPos
+        DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+15+TILESIZE*3, _yPos
+        
+        If _type = TILE_START Then
+            DrawImage BLOCKIMAGES( BLI_EXIT_UP ), BORDERSIZE+centerX, _yPos
+            DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), BORDERSIZE+5+TILESIZE+rightX, _yPos+centerY
+            DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), BORDERSIZE+10+TILESIZE*2+centerX, _yPos+bottomY
+            DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), BORDERSIZE+15+TILESIZE*3, _yPos+centerY
+        ElseIf _type = TILE_FINISH Then
+            DrawImage BLOCKIMAGES( BLI_ENTRANCE_UP ), BORDERSIZE+centerX, _yPos
+            DrawImage BLOCKIMAGES( BLI_ENTRANCE_RIGHT ), BORDERSIZE+5+TILESIZE+rightX, _yPos+centerY
+            DrawImage BLOCKIMAGES( BLI_ENTRANCE_BOTTOM ), BORDERSIZE+10+TILESIZE*2+centerX, _yPos+bottomY
+            DrawImage BLOCKIMAGES( BLI_ENTRANCE_LEFT ), BORDERSIZE+15+TILESIZE*3, _yPos+centerY
+        EndIf
+        
+        If _type = TILE_START Or TILE_FINISH Then plus = 6 Else plus = 0
+        DrawImage insideImg, BORDERSIZE+plus, _yPos+plus
+        DrawImage insideImg, BORDERSIZE+5+TILESIZE+plus, _yPos+plus
+        DrawImage insideImg, BORDERSIZE+10+TILESIZE*2+plus, _yPos+plus
+        DrawImage insideImg, BORDERSIZE+15+TILESIZE*3+plus, _yPos+plus
+    */
+    RemEnd
     
-    If _type = TILE_START Then
-        insideImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG )
-    ElseIf _type = TILE_FINISH Then
-        insideImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_ENDIMG )
-    ElseIf _type = TILE_PAINTER Then
-        insideImg = BLOCKIMAGES( BLI_PAINTER )
-    ElseIf _type = TILE_DIVIDER Then
-        insideImg = BLOCKIMAGES( BLI_PAINTER )
-    Else
-        Return -1
-    EndIf
-    
-    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE, _yPos
-    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+5+TILESIZE, _yPos
-    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+10+TILESIZE*2, _yPos
-    DrawImage BLOCKIMAGES( BLI_BORDERS ), BORDERSIZE+15+TILESIZE*3, _yPos
-    
-    If _type = TILE_START Then
-        DrawImage BLOCKIMAGES( BLI_EXIT_UP ), BORDERSIZE+centerX, _yPos
-        DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), BORDERSIZE+5+TILESIZE+rightX, _yPos+centerY
-        DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), BORDERSIZE+10+TILESIZE*2+centerX, _yPos+bottomY
-        DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), BORDERSIZE+15+TILESIZE*3, _yPos+centerY
-    ElseIf _type = TILE_FINISH Then
-        DrawImage BLOCKIMAGES( BLI_ENTRANCE_UP ), BORDERSIZE+centerX, _yPos
-        DrawImage BLOCKIMAGES( BLI_ENTRANCE_RIGHT ), BORDERSIZE+5+TILESIZE+rightX, _yPos+centerY
-        DrawImage BLOCKIMAGES( BLI_ENTRANCE_BOTTOM ), BORDERSIZE+10+TILESIZE*2+centerX, _yPos+bottomY
-        DrawImage BLOCKIMAGES( BLI_ENTRANCE_LEFT ), BORDERSIZE+15+TILESIZE*3, _yPos+centerY
-    EndIf
-    
-    If _type = TILE_START Or TILE_FINISH Then plus = 6 Else plus = 0
-    DrawImage insideImg, BORDERSIZE+plus, _yPos+plus
-    DrawImage insideImg, BORDERSIZE+5+TILESIZE+plus, _yPos+plus
-    DrawImage insideImg, BORDERSIZE+10+TILESIZE*2+plus, _yPos+plus
-    DrawImage insideImg, BORDERSIZE+15+TILESIZE*3+plus, _yPos+plus
+    DrawImage EDITORIMAGES( EDI_UPARROW ), BORDERSIZE, _yPos
+    DrawImage EDITORIMAGES( EDI_RIGHTARROW ), BORDERSIZE+TILESIZE+1, _yPos
+    DrawImage EDITORIMAGES( EDI_BOTTOMARROW ), BORDERSIZE+TILESIZE*2+2, _yPos
+    DrawImage EDITORIMAGES( EDI_LEFTARROW ), BORDERSIZE+TILESIZE*3+3, _yPos
     
     bitmask = _current
     
@@ -208,18 +239,18 @@ Function DrawSelectDirections( _current, _type, _color, _yPos )
         Color cbGreen
         Select i
             Case 0
-                If BinAnd( bitmask, 1 ) Then Box BORDERSIZE-2, _yPos-2, TILESIZE+4, TILESIZE+4, OFF
+                If BinAnd( bitmask, 1 ) Then Box BORDERSIZE, _yPos, TILESIZE, TILESIZE, OFF
             Case 1
-                If BinAnd( bitmask, 2 ) Then Box BORDERSIZE+TILESIZE-2+5, _yPos-2, TILESIZE+4, TILESIZE+4, OFF
+                If BinAnd( bitmask, 2 ) Then Box BORDERSIZE+TILESIZE+1, _yPos, TILESIZE, TILESIZE, OFF
             Case 2
-                If BinAnd( bitmask, 4 ) Then Box BORDERSIZE+TILESIZE*2-2+10, _yPos-2, TILESIZE+4, TILESIZE+4, OFF
+                If BinAnd( bitmask, 4 ) Then Box BORDERSIZE+TILESIZE*2+2, _yPos, TILESIZE, TILESIZE, OFF
             Case 3
-                If BinAnd( bitmask, 8 ) Then Box BORDERSIZE+TILESIZE*3-2+15, _yPos-2, TILESIZE+4, TILESIZE+4, OFF
+                If BinAnd( bitmask, 8 ) Then Box BORDERSIZE+TILESIZE*3+3, _yPos, TILESIZE, TILESIZE, OFF
         EndSelect
         
         Color cbWhite
-        If MouseOver( BORDERSIZE+TILESIZE*i-2+i*5, _yPos-2, TILESIZE+4, TILESIZE+4 ) Then
-            Box BORDERSIZE+TILESIZE*i-2+i*5, _yPos-2, TILESIZE+4, TILESIZE+4, OFF
+        If MouseOver( BORDERSIZE+TILESIZE*i+i, _yPos, TILESIZE, TILESIZE ) Then
+            Box BORDERSIZE+TILESIZE*i+i, _yPos, TILESIZE, TILESIZE, OFF
             If MouseHit(1) Then
                 If _type = TILE_FINISH Then
                     Select i
@@ -245,12 +276,89 @@ Function DrawSelectDirections( _current, _type, _color, _yPos )
     
 EndFunction
 
-//================================================================================
-// Funktio alku/loppup‰‰n m‰‰r‰n valitsemiseen.
-//================================================================================
-Function DrawSelectAmount( _current, _yPos )
-    Return True
-EndFunction
+//===============================================================================
+// Funktio, joka kokoaa laatan ja palauttaa luodun kuvan.
+//===============================================================================
+Function AssembleBlock( _type, _color, _directions, _amount )
+    img = MakeImage( TILESIZE, TILESIZE )
+    
+    centerX = (ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_UP )))/2
+    centerY = (ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_LEFT )))/2
+    rightX = ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_LEFT ))
+    bottomY = ImageHeight(BLOCKIMAGES( BLI_BORDERS ))-ImageHeight(BLOCKIMAGES( BLI_EXIT_UP ))
+    
+    If _type = TILE_ROADBLOCK Then
+        srcImg = BLOCKIMAGES( BLI_ROADBLOCK )
+        CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
+    EndIf
+
+    If _type = TILE_START Then
+    
+        srcImg = BLOCKIMAGES( BLI_BORDERS )
+        CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
+    
+        If _amount = 1 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_STARTIMG )
+            CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 6, 6, Image(srcImg), Image(img)
+        EndIf
+        If _amount > 1 And _amount <= 4 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_2x2, EI_STARTIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 2)*28
+                yPos = 6+( i>=2 )*28
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        If _amount > 4 And _amount <= 9 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_3x3, EI_STARTIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 3)*18
+                yPos = 6+( (i>=3)+(i>=6) )*18
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        
+        DrawToImage img
+            If BinAnd(_directions,1)=1 Then DrawImage BLOCKIMAGES( BLI_EXIT_UP ), centerX, 0
+            If BinAnd(_directions,2)=2 Then DrawImage BLOCKIMAGES( BLI_EXIT_RIGHT ), rightX, centerY
+            If BinAnd(_directions,4)=4 Then DrawImage BLOCKIMAGES( BLI_EXIT_BOTTOM ), centerX, bottomY
+            If BinAnd(_directions,8)=8 Then DrawImage BLOCKIMAGES( BLI_EXIT_LEFT ), 0, centerY
+        DrawToScreen
+    ElseIf _type = TILE_FINISH
+    
+        srcImg = BLOCKIMAGES( BLI_BORDERS )
+        CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
+    
+        If _amount = 1 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_1x1, EI_ENDIMG )
+            CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 6, 6, Image(srcImg), Image(img)
+        ElseIf _amount <= 4 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_2x2, EI_ENDIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 2)*28
+                yPos = 6+( i>=2 )*28
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        If _amount>4 And _amount <= 9 Then
+            srcImg = ENDIMAGES( _color, EI_SIZE_3x3, EI_ENDIMG )
+            For i=0 To _amount-1
+                xPos = 6+(i Mod 3)*18
+                yPos = 6+( (i>=3)+(i>=6) )*18
+                CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
+            Next i
+        EndIf
+        
+        DrawToImage img
+            If BinAnd(_directions,1)=1 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_UP ), centerX, 0
+            If BinAnd(_directions,2)=2 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_RIGHT ), rightX, centerY
+            If BinAnd(_directions,4)=4 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_BOTTOM ), centerX, bottomY
+            If BinAnd(_directions,8)=8 Then DrawImage BLOCKIMAGES( BLI_ENTRANCE_LEFT ), 0, centerY
+        DrawToScreen
+    EndIf
+    
+    Return img
+EndFunction 
 
 //================================================================================
 // Lis‰‰ palanen kokoelmaan.
@@ -317,6 +425,22 @@ Function ChangeBlock( _tileX, _tileY, _type, _color, _directions, _amount )
     Return False
 EndFunction
 
+//================================================================================
+// Piirt‰‰ nappulan, hoitaa hiiri-p‰‰ll‰ -animaation ja palauttaa, klikattiinko.
+//================================================================================
+Function DrawEditorButton( _type, _x, _y )
+    imgWidth = ImageWidth( EDITORIMAGES( _type ) )
+    imgHeight = ImageHeight( EDITORIMAGES( _type ) )
+
+    If MouseOver( _x, _y, imgWidth, imgHeight ) Then
+        DrawImage EDITORIMAGES( _type+4 ), _x, _y
+        If MouseHit(1) Then Return True
+    Else
+        DrawImage EDITORIMAGES( _type ), _x, _y
+    EndIf
+    
+    Return False
+EndFunction
 
 //================================================================================
 // Funktio palauttaa randomilla tehdyn kansiopolun uudelle kartalle
@@ -332,11 +456,14 @@ Function getUniqueFolderPath()
     
     randSeed$ = "abcdefghijklmnopqrstuvwxyz1234567890"
     
+    loops = 0
     Repeat
         randend$ = ""
         For i=0 To 12
             randend$ = randend$ + Mid( randSeed$, Rand( 1, Len(randSeed$) ), 1 )
         Next i
+        loops = loops + 1
+        If loops > 1000 Then MakeError "Program crashed! Please report this bug and give this code: error61"
     Until Not FileExists( folder$ + randend$ + "-tmp.CoH" )
     
     Return folder$ + randend$ + "-tmp.CoH"

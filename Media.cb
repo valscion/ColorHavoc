@@ -161,7 +161,7 @@ ENDIMAGES( TR_BROWN, EI_SIZE_3x3, EI_ENDIMG )       = LoadImage("media/3x3/end_b
 Const BLOCKIMAGES_AMOUNT = 12
 
 // Kuvat sisältävä taulukko
-Dim BLOCKIMAGES( BLOCKIMAGES_AMOUNT-1 )
+Dim BLOCKIMAGES( BLOCKIMAGES_AMOUNT - 1 )
 
 // Kuvia varten vakiot
 Const BLI_BORDERS           = 0
@@ -189,6 +189,48 @@ BLOCKIMAGES( BLI_EXIT_LEFT )        = LoadImage("media/blocks/exit_left.png")
 BLOCKIMAGES( BLI_ROADBLOCK )        = LoadImage("media/blocks/roadblock.png")
 BLOCKIMAGES( BLI_PAINTER )          = LoadImage("media/blocks/unknown.png")
 BLOCKIMAGES( BLI_DIVIDER )          = LoadImage("media/blocks/unknown.png")
+
+//================================================================================
+// Editorin kuvakkeita
+//================================================================================
+
+// Editorikuvien määrä
+Const EDITORIMAGES_AMOUNT = 12
+
+// Kuvat sisältävä taulukko
+Dim EDITORIMAGES( EDITORIMAGES_AMOUNT - 1 )
+
+Const EDI_UPARROW           = 0
+Const EDI_RIGHTARROW        = 1
+Const EDI_BOTTOMARROW       = 2
+Const EDI_LEFTARROW         = 3
+Const EDI_CLEARASSEMB_SEL   = 4
+Const EDI_CLEARASSEMB_UNSEL = 5
+Const EDI_NEW_UNSEL         = 6  // Näiden
+Const EDI_LOAD_UNSEL        = 7  // järjestys
+Const EDI_SAVE_UNSEL        = 8  // täytyy
+Const EDI_TEST_UNSEL        = 9  // pysyä
+Const EDI_NEW_SEL           = 10 // samana.
+Const EDI_LOAD_SEL          = 11 // ÄLÄ
+Const EDI_SAVE_SEL          = 12 // SIIS
+Const EDI_TEST_SEL          = 13 // MUUTA!
+
+
+EDITORIMAGES( EDI_UPARROW )          = LoadImage("media/editor/uparrow.png")
+EDITORIMAGES( EDI_RIGHTARROW )       = LoadImage("media/editor/rightarrow.png")
+EDITORIMAGES( EDI_BOTTOMARROW )      = LoadImage("media/editor/bottomarrow.png")
+EDITORIMAGES( EDI_LEFTARROW )        = LoadImage("media/editor/leftarrow.png")
+EDITORIMAGES( EDI_CLEARASSEMB_SEL )  = LoadImage("media/editor/clearassembled-selected.png")
+EDITORIMAGES( EDI_CLEARASSEMB_UNSEL )= LoadImage("media/editor/clearassembled-unselected.png")
+EDITORIMAGES( EDI_NEW_UNSEL )        = LoadImage("media/editor/new-unselected.png")
+EDITORIMAGES( EDI_LOAD_UNSEL )       = LoadImage("media/editor/load-unselected.png")
+EDITORIMAGES( EDI_SAVE_UNSEL )       = LoadImage("media/editor/save-unselected.png")
+EDITORIMAGES( EDI_TEST_UNSEL )       = LoadImage("media/editor/test-unselected.png")
+EDITORIMAGES( EDI_NEW_SEL )          = LoadImage("media/editor/new-selected.png")
+EDITORIMAGES( EDI_LOAD_SEL )         = LoadImage("media/editor/load-selected.png")
+EDITORIMAGES( EDI_SAVE_SEL )         = LoadImage("media/editor/save-selected.png")
+EDITORIMAGES( EDI_TEST_SEL )         = LoadImage("media/editor/test-selected.png")
+
 
 //================================================================================
 // Yleiset käyttöliittymän kuvat
