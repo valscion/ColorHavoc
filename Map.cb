@@ -1,3 +1,8 @@
+// This work is licensed under the Creative Commons Public Domain License. 
+// To view a copy of this license, visit 
+// http://creativecommons.org/licenses/publicdomain/ or send a letter to Creative 
+// Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
+
 //********************************************************************************
 // Map.cb
 //
@@ -24,13 +29,14 @@ Dim RAILS(MAPSIZE-1,MAPSIZE-1,1)
 
 // Kokoelma erikoispaloja (alku- ja loppupäät, maalauspalikat yms.) varten.
 Type SPECIALBLOCKS
-    Field tileX      // Palasen x-tilekoordinaatti
-    Field tileY      // Palasen y-tilekoordinaatti
-    Field blockType  // Palasen tyyppi
-    Field blockColor // Palasen väri, kts. Media.cb ja yleiset värien vakiot.
-    Field directions // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
-    Field amount     // Palasen sisältämä määrä, esim. lähtevien junien määrä.
-    Field img        // Kasattu kuva
+    Field tileX              // Palasen x-tilekoordinaatti
+    Field tileY              // Palasen y-tilekoordinaatti
+    Field blockType          // Palasen tyyppi
+    Field blockColor         // Palasen väri, kts. Media.cb ja yleiset värien vakiot.
+    Field directions         // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
+    Field amount             // Palasen sisältämä määrä, esim. lähtevien junien määrä.
+    Field moreInfo As String // Tarvittavat lisätiedot pilkuin ja välilyönnein erotellussa merkkijonossa
+    Field img                // Kasattu kuva
 EndType
 
 // Taulukko, joka sisältää tiedot kaikista mahdollisista pisteistä joihin tarrautua.
@@ -139,7 +145,7 @@ Function CheckBlockValidity( _type, _color, _directions, _amount )
     If _type = TILE_EMPTY Then Return True
     If _type = TILE_ROADBLOCK Then Return True
     
-    If _color = TR_GENERAL Or _color > TR_BROWN Then Return False
+    If _color = TR_GENERAL Or _color > TR_BROWN Or _color < 0 Then Return False
     
     If _type = TILE_PAINTER Then Return True
     If _type = TILE_DIVIDER Then Return True
