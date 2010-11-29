@@ -7,5 +7,6 @@
 # Ignoreen PhotoShop-filut.
 *.psd
 
-# Ignoreen .tmp tiedostot
+# Ignoreen .tmp tiedostot ja kansiot
 *.tmp
+tmp

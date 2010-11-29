@@ -29,8 +29,7 @@ Type SPECIALBLOCKS
     Field blockType          // Palasen tyyppi
     Field blockColor         // Palasen väri, kts. Media.cb ja yleiset värien vakiot.
     Field directions         // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
-    Field amount             // Palasen sisältämä määrä, esim. lähtevien junien määrä.
-    Field moreInfo As String // Tarvittavat lisätiedot pilkuin ja välilyönnein erotellussa merkkijonossa
+    Field moreInfo As String // Tarvittavat lisätiedot välilyönnein erotellussa merkkijonossa.
     Field img                // Kasattu kuva
 EndType
 
@@ -142,8 +141,8 @@ Function CheckBlockValidity( _type, _color, _directions, _amount )
     
     If _color = TR_GENERAL Or _color > TR_BROWN Or _color < 0 Then Return False
     
-    If _type = TILE_PAINTER Then Return True
-    If _type = TILE_DIVIDER Then Return True
+    If _type = TILE_PAINTER Then Return False // Ei vielä tehty
+    If _type = TILE_DIVIDER Then Return False // Ei vielä tehty
     
     
     If _amount > 9 Or _amount < 1 Then Return False
