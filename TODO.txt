@@ -1,5 +1,4 @@
 - Junat :D ylip‰‰ns‰ koko peli.
-- Editori
 - Parempi graafinen ilme
 	* Joku hieno tilen poistoanimaatio
 	* Raiteet ja junat kunnolla

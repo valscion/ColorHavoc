@@ -174,3 +174,4 @@ Function CheckBlockValidity( _type, _colors$, _directions )
     
     Return False
 EndFunction
+

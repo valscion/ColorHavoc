@@ -247,4 +247,4 @@ Const GUI_GAMEAREA = 0
 Const GUI_MENUBG   = 1
 
 GUIIMAGES( GUI_GAMEAREA ) = LoadImage("media/backgrounds/gamearea_7x7.png")
-GUIIMAGES( GUI_MENUBG )   = LoadImage("media/backgrounds/menu.png")
+GUIIMAGES( GUI_MENUBG )   = LoadImage("media/backgrounds/menu.png") 

@@ -6,6 +6,4 @@ Repeat
     DrawImage img, 10, 10
     
     DrawScreen
-Until EscapeKey() Or KeyHit(cbKeyQ)
-
-
+Until EscapeKey() Or KeyHit(cbKeyQ) 
