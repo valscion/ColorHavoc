@@ -84,7 +84,7 @@ Function Editor()
         // Piirret‰‰n kasattu laatta
         DrawImage blockImg, ScreenWidth()-BORDERSIZE-TILESIZE-28, startY+80
         
-        // Tarksta, onko laatta sopiva laitettavaksi.
+        // Tarkistetaan, onko laatta sopiva laitettavaksi.
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections )
         SetWindow "Valid: " + blockIsValid
         
@@ -390,7 +390,7 @@ Function ChangeBlock( _tileX, _tileY, _type, _color$, _directions )
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
         If sb\tileX = _tileX And sb\tileY = _tileY Then
             sb\blockType = _type
-            sb\blockColors = Int( GetWord( _color$, 1 ) ) // <---------------------------------------------- FIX
+            sb\blockColors = _color$
             sb\directions = _directions
             Return True
         EndIf
