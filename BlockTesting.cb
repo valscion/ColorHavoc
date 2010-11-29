@@ -1,5 +1,5 @@
 amount = 1
-img = AssembleBlock2( TILE_FINISH, "6 6 6 6 6 6", 15 )
+img = AssembleBlock( TILE_FINISH, "2 3 1 6 0 4", 15 )
 
 Repeat
 

@@ -24,13 +24,12 @@ Dim RAILS(MAPSIZE-1,MAPSIZE-1,1)
 
 // Kokoelma erikoispaloja (alku- ja loppupäät, maalauspalikat yms.) varten.
 Type SPECIALBLOCKS
-    Field tileX              // Palasen x-tilekoordinaatti
-    Field tileY              // Palasen y-tilekoordinaatti
-    Field blockType          // Palasen tyyppi
-    Field blockColor         // Palasen väri, kts. Media.cb ja yleiset värien vakiot.
-    Field directions         // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
-    Field moreInfo As String // Tarvittavat lisätiedot välilyönnein erotellussa merkkijonossa.
-    Field img                // Kasattu kuva
+    Field tileX                 // Palasen x-tilekoordinaatti
+    Field tileY                 // Palasen y-tilekoordinaatti
+    Field blockType             // Palasen tyyppi
+    Field blockColors As String // Palasen väri, kts. Media.cb ja yleiset värien vakiot. Eroteltu välilyönnein toisistaan.
+    Field directions            // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
+    Field img                   // Kasattu kuva
 EndType
 
 // Taulukko, joka sisältää tiedot kaikista mahdollisista pisteistä joihin tarrautua.
@@ -133,19 +132,23 @@ EndFunction
 // Onko laatta sääntöjen mukainen. Huomaa, että jos funktiolle annetaan
 // parametrina raide, on palautusarvo False.
 //===============================================================================
-Function CheckBlockValidity( _type, _color, _directions, _amount )
+Function CheckBlockValidity( _type, _colors$, _directions )
 
     If _type = TILE_TRACK Then Return False 
-    If _type = TILE_EMPTY Then Return True
+    If _type = TILE_EMPTY Then Return False
     If _type = TILE_ROADBLOCK Then Return True
-    
-    If _color = TR_GENERAL Or _color > TR_BROWN Or _color < 0 Then Return False
     
     If _type = TILE_PAINTER Then Return False // Ei vielä tehty
     If _type = TILE_DIVIDER Then Return False // Ei vielä tehty
     
+    amount = CountWords( _colors$ )
     
-    If _amount > 9 Or _amount < 1 Then Return False
+    If amount < 1 Or amount > 9 Then Return False
+    
+    For i=1 To amount
+        check = Int( GetWord( _colors$, i ) )
+        If check = TR_GENERAL Or check > TR_BROWN Or check < 0 Then Return False
+    Next i
     
     If _type = TILE_START
         If BinAnd(_directions,1) Then
@@ -163,7 +166,7 @@ Function CheckBlockValidity( _type, _color, _directions, _amount )
         EndIf
         Return False
     EndIf
-        
+    
     If _type = TILE_FINISH Then
         If BinAnd(_directions,1) Or BinAnd(_directions,2) Or BinAnd(_directions,4) Or BinAnd(_directions,8) Then Return True
         Return False

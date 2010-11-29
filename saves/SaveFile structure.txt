@@ -1,0 +1,60 @@
+Information on how the mapfile (.coh) is built
+===============================================
+
+Header, bytes 1-128
+-------------------
+
+Bytes 1-3:
+	Signature of the mapfile, string "CoH" (notice the small "o")
+Bytes 4-16:
+	String used to identify the version of the game this map was built on. 
+	The leftover bytes are filled with spaces.
+	E.g. "0.1          "
+Bytes 17-32:
+	Reserved for future use.
+Bytes 33-64:
+	The name of the map, with the leftover bytes filled with spaces.
+	E.g. "The greatest map of all!        "
+	Notice that the maximun length for a map name is 32 characters.
+Bytes 65-96:
+	Authors name, with the leftover bytes filled with spaces.
+	E.g. "Vesa Laakso (VesQ)              "
+	Notice that the maximun length for a map name is 32 characters.
+Bytes 97-128:
+	An MD5 hash of the above information and map data.
+	E.g. "d41d8cd98f00b204e9800998ecf8427e"
+
+
+
+Map data, bytes from 129 to EOF
+-------------------------------
+Each tile is represented with a chunk size of 16 bytes.
+
+
+Byte 1: 
+	The x-coordinate of a tile
+Byte 2:
+	The y-coordinate of a tile
+Byte 3:
+	The type of a tile
+Byte 4:
+	A bitmask used to save the start and exit directions from a block.
+	1 = top, 2 = right, 4 = bottom, 8 = left
+	E.g. "7" for top-right-bottom combination (1+2+4)
+Bytes 5-13:
+	The color of each part of the tile, starting from the upper left corner.
+	See the color constants below.
+Bytes 14-16:
+	Reserved for future use.
+
+
+
+Color constants
+---------------
+0 = Red
+1 = Yellow
+2 = Blue
+3 = Orange
+4 = Purple
+5 = Green
+6 = Brown
