@@ -3,3 +3,130 @@
 //
 // Karttojen ja ratkaisujen tallentaminen.
 //********************************************************************************
+
+//================================================================================
+// Tallennusmenun piirtäminen editoriin.
+//================================================================================
+Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
+    If savePath$ = "" Then 
+        savePath$ = getTmpFilePath()
+    EndIf
+    
+    // Otetaan piirretty tausta talteen
+    bgImg = DrawOverlayMenu( "Save map", _y, _height )
+    
+    // Syötteen maksimipituus, 32 merkkiä.
+    SetFont FONTS( FNT_DEFAULT )
+    inputWidth = TextWidth("################################" + "#_")
+    
+    // Luodaan söytteet tekijää ja kartan nimeä varten.
+    authorInput = NewInput()
+    nameInput = NewInput()
+    
+    // Asetetaan syötteet epäaktiivisiksi.
+    ActiveInput( -1 )
+    
+    // Asetetaan syötteidein kursorit merkkijonojen loppuun.
+    SetInput2Position( authorInput, Len(gMapAuthor) )
+    SetInput2Position( nameInput, Len(gMapName) )
+    
+    // Tyhjennetään hiiripuskuri, ettei valikko vain välähdä ruudulla.
+    ClearMouse()
+    Repeat
+        DrawImage bgImg, 0, 0
+        
+        // Syötteiden selitykset
+        SetFont FONTS( FNT_OVERLAYMENU )
+        Color cbWhite
+        Text gOverlayX+30, gOverlayY+60, "Author: "
+        Text gOverlayX+30, gOverlayY+95, "Map name: "
+        
+        // Piirretään tekijän nimen syöte ja ympärillä oleva laatikko
+        If ActiveInput()=authorInput Then
+            Color cbWhite
+        ElseIf MouseOver( gOverlayX+120, gOverlayY+55, inputWidth, 30 ) Then
+            Color cbGreen
+            If MouseUp(1) Then ActiveInput( authorInput )
+        Else
+            Color 64, 64, 64
+        EndIf
+        Box gOverlayX+120, gOverlayY+55, inputWidth, 30, OFF
+        
+        // Piirretään kartan nimen syöte ja ympärillä oleva laatikko
+        If ActiveInput()=nameInput Then
+            Color cbWhite
+        ElseIf MouseOver( gOverlayX+120, gOverlayY+90, inputWidth, 30 ) Then
+            Color cbGreen
+            If MouseUp(1) Then ActiveInput( nameInput )
+        Else
+            Color 64, 64, 64
+        EndIf
+        Box gOverlayX+120, gOverlayY+90, inputWidth, 30, OFF
+        
+        // "Save the map!" tekstin laatikon piirto
+        If MouseOver( gOverlayX+80, gOverlayY+135, gOverlayWidth-160, 30 ) Then
+            Color cbWhite
+        Else
+            Color 0, 0, 192
+        EndIf
+        // Paksummat reunat.
+        Box gOverlayX+80, gOverlayY+135, gOverlayWidth-160, 30, OFF
+        Box gOverlayX+81, gOverlayY+136, gOverlayWidth-162, 28, OFF
+        
+        // Piirretään teksti keskitetysti ruudulle, laatikon sisään
+        Color cbWhite
+        txt$ = "Save the map!"
+        Text (ScreenWidth()-TextWidth(txt))/2, gOverlayY+139, txt
+        
+        // Hiiren klikkauksen eri toiminnot
+        If MouseUp(1) Then
+            If MouseOver( gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight ) Then
+                // Hiiren klikkaus tapahtui overlayn sisällä.
+                If MouseOver( gOverlayX+120, gOverlayY+55, inputWidth, 30 ) Then
+                    // Klikattiin authorInputin päältä, joten aktivoidaan se.
+                    // Tyhjennetään kuitenkin sitä ennen näppäimistöpuskuri, ettei
+                    // syötteeseen ilmesty haamukirjaimia.
+                    ClearKeys()
+                    ActiveInput( authorInput )
+                ElseIf MouseOver( gOverlayX+120, gOverlayY+90, inputWidth, 30 ) Then
+                    // Klikattiin nameInputin päältä, joten aktivoidaan se.
+                    ClearKeys()
+                    ActiveInput( nameInput )
+                ElseIf MouseOver( gOverlayX+80, gOverlayY+135, gOverlayWidth-160, 30 )
+                    // Klikattiin "Save the map!" napista.
+                    
+                    // Suljetaan syötteet.
+                    ActiveInput( -1 )
+                    
+                    // Tallennetaan tiedosto.
+                    SaveMapFile( savePath$ )
+                Else
+                    // Jos ei oltu syötteiden päällä, niin suljetaan syötteet.
+                    ActiveInput( -1 )
+                EndIf
+            Else
+                // Jos  hiirellä klikattiin overlayn ulkopuolelta, niin poistutaan.
+                Exit
+            EndIf
+        EndIf
+        
+        // Hoidetaan syötteiden piirto.
+        SetFont FONTS( FNT_DEFAULT )
+        gMapAuthor = Input2( authorInput, gMapAuthor, gOverlayX+120, gOverlayY+60, 32 )
+        gMapName = Input2( nameInput, gMapName, gOverlayX+120, gOverlayY+95, 32 )
+        
+        // Täytyy ennen DrawScreeniä tarkistaa, halutaanko poistua silmukasta.
+        // Muuten ruutu välähtää.
+        If EscapeKey() Or ( ActiveInput()=-1 And KeyHit(cbKeyQ) ) Then Exit
+        
+        DrawScreen
+    Forever
+EndFunction 
+
+//================================================================================
+// Kartan varsinainen tallennus. Huomaa "saves" kansiossa oleva tiedosto, joka
+// kertoo karttaformaatin muodon.
+//================================================================================
+Function SaveMapFile( _path$ )
+    If FileExists( _path$ ) Then Return False
+EndFunction 

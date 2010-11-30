@@ -14,13 +14,17 @@ Const MNU_LOAD       = 3
 // Valikon piirt‰minen, p‰‰silmukka.
 //================================================================================
 Function DrawMenu( _menu = MNU_MAIN )
+    SetFont FONTS( FNT_MENU )
+    
     Repeat
         DrawImage GUIIMAGES( GUI_MENUBG ), 0, 0
         
         If DrawMenuItem( "Start game!", 100 ) Then
             StartGame()
+            SetFont FONTS( FNT_MENU )
         ElseIf DrawMenuItem( "Go to editor", 200 ) Then
             Editor()
+            SetFont FONTS( FNT_MENU )
         ElseIf DrawMenuItem( "Exit program", 300 ) Then
             Exit
         EndIf
@@ -48,4 +52,45 @@ Function DrawMenuItem( _txt$, _yPosition )
     Box x_coord, _yPosition, 200, 40, OFF 
     
     Return False
+EndFunction 
+
+//================================================================================
+// Overlay-valikon piirt‰minen. J‰tt‰‰ taakse vanhan ruudun kuvan, ja piirt‰‰
+// p‰‰lle valikon pohjan.
+// Globaalit gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight sis‰lt‰v‰t
+// tiedon overlayn vasemman yl‰nurkan koordinaateista ja overlayn korkeudesta
+// sek‰ leveydest‰.
+//================================================================================
+Global gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight
+Function DrawOverlayMenu( _title$ = "Menu", _y=-1, _height=-1 )
+    
+    If _y<0 Then gOverlayY = BORDERSIZE + 50 Else gOverlayY = _y
+    If _height<0 Then gOverlayHeight = ScreenHeight() - BORDERSIZE*2 - 100 Else gOverlayHeight = _height
+    
+    gOverlayWidth = ScreenWidth() - BORDERSIZE*2 - 60
+    gOverlayX = (ScreenWidth() - gOverlayWidth)/2
+    
+    Color 0, 0, 1
+    Box gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight, ON
+    Color cbYellow
+    Box gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight, OFF
+    
+    SetFont FONTS( FNT_OVERLAYMENU_TITLE )
+    Color 128,128,128
+    Text gOverlayX+(gOverlayWidth-TextWidth(_title$))/2+2, gOverlayY+6, _title
+    Color cbWhite
+    Text gOverlayX+(gOverlayWidth-TextWidth(_title$))/2, gOverlayY+4, _title
+    
+    Color cbGreen
+    Line gOverlayX+1, gOverlayY+45, gOverlayX+gOverlayWidth-2, gOverlayY+45
+    Line gOverlayX+1, gOverlayY+48, gOverlayX+gOverlayWidth-2, gOverlayY+48
+    
+    Color cbWhite
+    
+    bgImg = MakeImage( ScreenWidth(), ScreenHeight() )
+    CopyBox 0, 0, ScreenWidth(), ScreenHeight(), 0, 0, SCREEN(), Image(bgImg)
+    
+    SetFont FONTS( FNT_DEFAULT )
+    
+    Return bgImg
 EndFunction 

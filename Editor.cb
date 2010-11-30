@@ -8,7 +8,7 @@
 // Editorin p‰‰silmukka
 //================================================================================
 Function Editor()
-    currentMap$ = getUniqueFolderPath() // Random-karttapolku
+    currentMap$ = getTmpFilePath() // Random-karttapolku
     blockIsValid = False // Onko palanen oikeanlainen
     
     startY = TILESIZE*MAPSIZE + BORDERSIZE*2
@@ -67,6 +67,12 @@ Function Editor()
         // Clear-nappula, joka tyhjent‰‰ kasatun laatan
         If MouseOver( ScreenWidth()-BORDERSIZE-25, startY+80, 25, TILESIZE ) Then
             DrawImage EDITORIMAGES( EDI_CLEARASSEMB_SEL ), ScreenWidth()-BORDERSIZE-25, startY+80
+            If blockType<>-1 Then
+                // Jos ollaan kasattu edes jonkinmoista laattaa, niin piirret‰‰n sen taustalle
+                // tummanpunainen laatikko.
+                Color 64,0,0
+                Box ScreenWidth()-BORDERSIZE-TILESIZE-30, startY+78, TILESIZE+4, TILESIZE+4
+            EndIf
             If MouseHit(1) Then
                 blockType=-1
                 blockColor=TR_GENERAL
@@ -87,6 +93,8 @@ Function Editor()
         // Tarkistetaan, onko laatta sopiva laitettavaksi.
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections )
         SetWindow "Valid: " + blockIsValid
+        
+        If saveClicked Then EditorSaveMenu(currentMap$, startY+50, 180 ) 
         
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
@@ -408,7 +416,7 @@ Function DrawEditorButton( _type, _x, _y )
 
     If MouseOver( _x, _y, imgWidth, imgHeight ) Then
         DrawImage EDITORIMAGES( _type+4 ), _x, _y
-        If MouseHit(1) Then Return True
+        If MouseUp(1) Then Return True
     Else
         DrawImage EDITORIMAGES( _type ), _x, _y
     EndIf
@@ -417,10 +425,9 @@ Function DrawEditorButton( _type, _x, _y )
 EndFunction
 
 //================================================================================
-// Funktio palauttaa randomilla tehdyn kansiopolun uudelle kartalle
-// v‰liaikaistallennuksia varten.
+// Funktio palauttaa randomilla tehdyn tiedostopolun tmp-tiedostoa varten.
 //================================================================================
-Function getUniqueFolderPath()
+Function getTmpFilePath()
     folder$ = "saves/tmp/"
     If Not IsDirectory("saves") Then MakeDir "saves"
     If Not IsDirectory("saves/tmp") Then MakeDir "saves/tmp"

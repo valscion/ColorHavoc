@@ -59,6 +59,8 @@ RAILIMGS(TR_XCROSS,1)      = RAILIMGS(TR_XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
 //================================================================================
 // Junien lataus muistiin ja junien kokoelman m‰‰rittely.
 //================================================================================
+RemStart
+/* Ei viel‰ k‰ytet‰ miss‰‰n, joten j‰tet‰‰n turhat lataukset pois.
 Type TRAINS
     Field obj         // Junan objekti
     Field trainColor  // V‰ri
@@ -70,6 +72,7 @@ Const TRAINOBJECTS_AMOUNT = 7
 // Junien objektit sis‰lt‰v‰ taulukko
 Dim TRAINOBJECTS( TRAINOBJECTS_AMOUNT-1 )
 
+Smooth2D ON
 TRAINOBJECTS( TR_RED )    = LoadObject("media/train_red.png", 72)
 TRAINOBJECTS( TR_YELLOW ) = LoadObject("media/train_yellow.png", 72)
 TRAINOBJECTS( TR_BLUE )   = LoadObject("media/train_blue.png", 72)
@@ -77,12 +80,14 @@ TRAINOBJECTS( TR_ORANGE ) = LoadObject("media/train_orange.png", 72)
 TRAINOBJECTS( TR_PURPLE ) = LoadObject("media/train_purple.png", 72)
 TRAINOBJECTS( TR_GREEN )  = LoadObject("media/train_green.png", 72)
 TRAINOBJECTS( TR_BROWN )  = LoadObject("media/train_brown.png", 72)
+Smooth2D OFF
 
 // Piilotetaan junat
 For i=0 To 6
     ShowObject TRAINOBJECTS( i ), OFF
 Next i
-
+*/
+RemEnd
 //================================================================================
 // Aloitus- ja lopetuskuvat
 //================================================================================
@@ -248,3 +253,24 @@ Const GUI_MENUBG   = 1
 
 GUIIMAGES( GUI_GAMEAREA ) = LoadImage("media/backgrounds/gamearea_7x7.png")
 GUIIMAGES( GUI_MENUBG )   = LoadImage("media/backgrounds/menu.png") 
+
+//================================================================================
+// Fontit
+//================================================================================
+
+// Fonttien m‰‰r‰
+Const FONTS_AMOUNT = 4
+
+// Fontit sis‰lt‰v‰ taulukko
+Dim FONTS( FONTS_AMOUNT-1 )
+
+// Fontteja varten vakiot
+Const FNT_DEFAULT = 0
+Const FNT_MENU = 1
+Const FNT_OVERLAYMENU_TITLE = 2
+Const FNT_OVERLAYMENU = 3
+
+FONTS( FNT_DEFAULT )            = LoadFont( "Trebuchet MS", 18, OFF, OFF, OFF )
+FONTS( FNT_MENU )               = LoadFont( "Trebuchet MS", 22, OFF, ON, OFF )
+FONTS( FNT_OVERLAYMENU_TITLE )  = LoadFont( "Trebuchet MS", 34, ON, ON, OFF )
+FONTS( FNT_OVERLAYMENU )        = LoadFont( "Trebuchet MS", 22, ON, OFF, OFF )

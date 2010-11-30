@@ -15,7 +15,12 @@ Type MAPS
     Field folderPath As String
     Field name       As String
     Field author     As String
+    Field hash       As String // MD5-hash tiedoista.
 EndType
+
+// Globaalit, jotka sisältävät tiedon nykyisen kartan nimestä ja tekijästä.
+Global gMapName As String
+Global gMapAuthor As String
 
 // Versionumero
 Const COH_VERSION$ = "0.1.1"
@@ -23,6 +28,7 @@ Const COH_VERSION$ = "0.1.1"
 //--------------------------------------------------------------------------------
 // Includet
 //--------------------------------------------------------------------------------
+Include "cbAPI.cb" // by Marcoder
 Include "Utils.cb"
 Include "Media.cb"
 Include "Map.cb"

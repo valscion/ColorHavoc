@@ -5,7 +5,7 @@
 //********************************************************************************
 
 //===============================================================================
-// Binäärioperaatioita
+// Binäärioperaatioita (by Bagard)
 //===============================================================================
 Function BinAnd(luku1, luku2)
     For i = 0 To 31
@@ -66,4 +66,146 @@ EndFunction
 //===============================================================================
 Function MouseOver(x,y,w,h)'x ja y akseli, w leveys, h pituus.
     Return (MouseX() > x And MouseY() > y And Mousex() < x + w And Mousey() < y + h)
+EndFunction 
+
+
+//===============================================================================
+// Luo CB:n omaa Input()-funktiota muistuttavan syötteen. Tekstissä voi liikkua 
+// nuolinäppäimillä, myös home- ja end-näppäimet toimivat.
+// ------
+// ActiveInput()  
+//   - Palauttaa nykyisen aktiivisen syötteen.
+// ActiveInput(mem) 
+//   - Asettaa syötteen "mem" aktiiviseksi.
+// NewInput()
+//   - Luo uuden syötteen ja palauttaa sen osoitteen muita funktiota varten.
+// SetInput2Position(mem, pos)
+//   - Asettaa syötteen "mem" kursorin kohtaan "pos".
+// Input2(mem, txt, x, y, maxlen)
+//   - Hoitaa varsinaisen syötteen. "mem" on syötteen osoite, "txt" piirtää
+//     tekstiä syötteeseen, "x" ja "y" ovat syötteen koordinaatit, "maxlen"
+//     on syötteen maksimipituus.
+//   - Palauttaa syötteen sisällön. Palautusarvo annetaan normaalisti "txt"
+//     parametriin takaisin.
+//===============================================================================
+
+Global __InputActive
+Function ActiveInput(mem=0)
+    If mem=0 Then Return __InputActive
+    __InputActive = mem
+End Function
+
+Function NewInput()
+    tmpmem = MakeMEMBlock(27)
+    __InputActive=tmpmem
+    PokeInt tmpmem,23,TextHeight("I")
+    Return tmpmem
+End Function
+
+Function SetInput2Position(datmem,pos)
+    PokeInt datmem,4,pos
+EndFunction
+
+Function Input2$(datmem,txt$,x,y,maxlen=0)
+    aika=Timer()
+    active=(datmem=__InputActive)
+    h=PeekInt(datmem,23)
+    mx=MouseX():my=MouseY()
+    blink = PeekInt(datmem,0)
+    curpos = Max(PeekInt(datmem,4),0)
+    exs = PeekInt(datmem,9)
+    exc = PeekByte(datmem,13)
+    delay = PeekInt(datmem,14)
+    del = PeekByte(datmem,18)
+    blinkkaa=Not PeekByte(datmem,8)
+    mleft=4
+    mtop=2
+    riviväli=15
+    If active Then
+        For i=0 To 220
+            tmp=tmp+(i^2)*KeyDown(i)
+        Next i
+        If tmp<>exs Then exc=0:delay=0:del=0
+        k = GetKey()
+        If KeyHit(181) Then k=47
+        numpad=0
+        For i=71 To 83
+            If i=78 Or i=74 Then i+1
+            If KeyHit(i) Then numpad=i Then Exit
+        Next i
+        If numpad Then
+            Select numpad
+                Case 83:k=44
+                Case 82:k=48
+                Case 79:k=49
+                Case 80:k=50
+                Case 81:k=51
+                Case 75:k=52
+                Case 76:k=53
+                Case 77:k=54
+                Case 71:k=55
+                Case 72:k=56
+                Case 73:k=57
+            End Select
+        EndIf
+        If k Then
+            exc=k:delay=0:del=0:blink=aika+500:blinkkaa=False:PokeInt datmem,0,blink:PokeByte datmem,8,blinkkaa
+        EndIf
+        txtlen=Len(txt)
+        If (exc>31 And (exc<127 Or exc>159) And ((((tmp=exs) And tmp<>0) And aika>delay) Or k)) And (exc<>45 Or KeyDown(181)=0) Then
+            If del=0 Then delay=aika+400:del=1 Else delay=aika+20
+            txt=StrInsert(txt,curpos,Chr(exc))
+            curpos=curpos+1
+            blinkkaa=True
+        ElseIf (exc=8 Or exc=127) And curpos>0 And (aika>delay Or k) Then
+            If del=0 Then delay=aika+400:del=1 Else delay=aika+20
+            If exc=127 Then
+                ttt=curpos
+                For i=curpos To 1 Step -1
+                    a=Asc(Mid(txt,i,1))
+                    If ((a<48 Or (a>57 And a<65) Or (a>90 And a<97) Or (a>122 And a<192)) And a<>39) Then
+                        If i=ttt Then txt=StrRemove(txt,i,1):curpos-1
+                        Exit
+                    EndIf
+                    txt=StrRemove(txt,i,1)
+                    curpos-1
+                Next i
+            Else
+                txt=StrRemove(txt,curpos,1)
+                curpos-1
+            EndIf
+            blinkkaa=True
+        ElseIf exc=4 And (aika>delay Or k) Then
+            If del=0 Then delay=aika+400:del=1 Else delay=aika+20
+            If curpos<txtlen Then txt=StrRemove(txt,curpos+1,1)
+            blinkkaa=True
+        ElseIf k=2 Then
+            curpos=txtlen
+        ElseIf k=1 Then
+            curpos=0
+        ElseIf (exc=30 Or exc=31) And (aika>delay Or k) Then
+            If del=0 Then delay=aika+400:del=1 Else delay=aika+20
+            blinkkaa=True
+            curpos=Min(Max(curpos+(exc=30)-(exc=31),0),txtlen)
+        EndIf
+    EndIf
+    If aika>blink Then
+        PokeInt datmem,0,aika+500
+        PokeByte datmem,8,blinkkaa
+    EndIf
+    txtlen=Len(txt)
+    If txtlen>maxlen Then txt=Left(txt,32) : curpos-1
+    exs=tmp
+    offset=1
+    Text x+mleft,y+mtop,txt
+    If blinkkaa And active Then
+        ww=TextWidth(Mid(txt,offset,(curpos-offset)+1))
+        Text x+mleft+ww,y+mtop,"_"
+    EndIf
+    PokeInt datmem,4,curpos
+    PokeInt datmem,9,exs
+    PokeByte datmem,13,exc
+    PokeInt datmem,14,delay
+    PokeByte datmem,18,del
+    Return txt
 EndFunction 
