@@ -27,8 +27,8 @@ Type SPECIALBLOCKS
     Field tileX                 // Palasen x-tilekoordinaatti
     Field tileY                 // Palasen y-tilekoordinaatti
     Field blockType             // Palasen tyyppi
-    Field blockColors As String // Palasen väri, kts. Media.cb ja yleiset värien vakiot. Eroteltu välilyönnein toisistaan.
     Field directions            // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
+    Field blockColors As String // Palasen väri, kts. Media.cb ja yleiset värien vakiot. Eroteltu välilyönnein toisistaan.
     Field img                   // Kasattu kuva
 EndType
 

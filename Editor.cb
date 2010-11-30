@@ -360,10 +360,10 @@ Function AddBlock( _tileX, _tileY, _ptr, _type, _color$, _directions, _img=0 )
 
     // Tarkistetaan, ettei lisätä turhia tietoja palasille, jotka eivät
     // sitä tietoa tarvitse.
-    If _type = TYPE_ROADBLOCK Then
+    If _type = TILE_ROADBLOCK Then
         _color = TR_GENERAL
         _directions = 0
-    ElseIf _type = TYPE_DIVIDER Then
+    ElseIf _type = TILE_DIVIDER Then
         _color = TR_GENERAL
     EndIf
     
@@ -445,7 +445,7 @@ Function getTmpFilePath()
         Next i
         loops = loops + 1
         If loops > 1000 Then MakeError "Program crashed! Please report this bug and give this code: error61"
-    Until Not FileExists( folder$ + randend$ + "-tmp.CoH" )
+    Until Not FileExists( folder$ + randend$ + "-tmp.coh" )
     
-    Return folder$ + randend$ + "-tmp.CoH"
+    Return folder$ + randend$ + "-tmp.coh"
 EndFunction 

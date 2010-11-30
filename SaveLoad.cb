@@ -9,7 +9,7 @@
 //================================================================================
 Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
     If savePath$ = "" Then 
-        savePath$ = getTmpFilePath()
+        savePath$ = getTmpFilePath() 'Editor.cb
     EndIf
     
     // Otetaan piirretty tausta talteen
@@ -100,6 +100,9 @@ Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
                     
                     // Tallennetaan tiedosto.
                     SaveMapFile( savePath$ )
+                    
+                    // Arvotaan uusi uniikki tiedostonimi. Tämä tietysti pois valmiissa pelissä.
+                    savePath$ = getTmpFilePath()
                 Else
                     // Jos ei oltu syötteiden päällä, niin suljetaan syötteet.
                     ActiveInput( -1 )
@@ -129,4 +132,71 @@ EndFunction
 //================================================================================
 Function SaveMapFile( _path$ )
     If FileExists( _path$ ) Then Return False
+    
+    If Right(_path$,4) <> ".coh" Then _path$ = _path$ + ".coh"
+    
+    If Len(gMapAuthor) > 32 Then gMapAuthor = Left( gMapAuthor, 32 )
+    If Len(gMapName) > 32 Then gMapName = Left( gMapName, 32 )
+    
+    // Generoidaan MD5-hash kartan nimestä, tekijästä ja kartan datasta.
+    md5source$ = gMapName + gMapAuthor
+    For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+        md5source$ = md5source$ + bl\tileX
+        md5source$ = md5source$ + bl\tileY
+        md5source$ = md5source$ + bl\blockType
+        md5source$ = md5source$ + bl\directions
+        md5source$ = md5source$ + bl\blockColors
+    Next bl
+    md5hash$ = MD5( md5source$ )
+    
+    f = OpenToWrite( _path$ )
+        // Headerin kirjoittaminen.
+        WriteString2( f, "CoH" )
+        WriteString2( f, LSet( COH_VERSION, 13 ) )
+        WriteString2( f, LSet( "", 16 ) )
+        WriteString2( f, LSet( gMapName, 32 ) )
+        WriteString2( f, LSet( gMapAuthor, 32 ) )
+        WriteString2( f, md5hash$ )
+        
+        // Kartan data, 16-tavun kokoisissa paloissa.
+        For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+            WriteByte f, bl\tileX
+            WriteByte f, bl\tileY
+            WriteByte f, bl\blockType
+            WriteByte f, bl\directions
+            For i=1 To 9
+                If i <= CountWords( bl\blockColors ) Then
+                    WriteByte f, Int( GetWord( bl\blockColors, i ) )
+                Else
+                    WriteByte f, Asc(" ")
+                EndIf
+            Next i
+            WriteString2( f, LSet( "", 3 ) ) // Varattu myöhemmälle käytölle.
+        Next bl
+    CloseFile f
+    
+    Return True
+EndFunction 
+
+//================================================================================
+// Kirjoittaa merkkijonon tiedostoon tavu tavulta. 
+// Parametrina annetaan avoimen tiedoston kahva ja merkkijono.
+//================================================================================
+Function WriteString2( _fileHandle, _str$ )
+    For i=1 To Len(_str$)
+        WriteByte _fileHandle, Asc( Mid( _str$, i, 1 ) )
+    Next i
+EndFunction 
+
+//================================================================================
+// Lukee tiedostosta halutun pituisen palasen ja palauttaa luetun datan
+// merkkijonona. Parametrina annetaan avoimen tiedoston kahva ja datan pituus.
+//================================================================================
+Function ReadString2( _fileHandle, _len )
+    ret = ""
+    For i=1 To _len
+        ret = ret + Chr( ReadByte( _fileHandle ) )
+    Next i
+    
+    Return ret
 EndFunction 

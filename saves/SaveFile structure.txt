@@ -21,7 +21,7 @@ Bytes 65-96:
 	E.g. "Vesa Laakso (VesQ)              "
 	Notice that the maximun length for a map name is 32 characters.
 Bytes 97-128:
-	An MD5 hash of the above information and map data.
+	An MD5 hash of maps name, authors name and map data.
 	E.g. "d41d8cd98f00b204e9800998ecf8427e"
 
 
