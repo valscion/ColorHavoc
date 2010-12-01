@@ -10,6 +10,7 @@
 // Pelin p‰‰silmukka
 //================================================================================
 Function StartGame()
+    InitializeGameMap()
     Repeat
         // Piirret‰‰n taustakuva pelialueelle
         DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
@@ -70,7 +71,7 @@ Function DrawGameMap()
                     // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
                     // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
                     // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
-                    If RAILS(x,y,0)<>TILE_EMPTY And RAILS(x,y,1)<>TILE_EMPTY And RAILS(x,y,0)<>RAILS(x,y,1) Then
+                    If RAILS(x,y,1)<>TR_EMPTY Then
                         tmp = RAILS(x,y,0)
                         RAILS(x,y,0) = RAILS(x,y,1)
                         RAILS(x,y,1) = tmp
@@ -184,4 +185,16 @@ Function CheckRailDraws()
         Return False
     EndIf
     
+EndFunction 
+
+//================================================================================
+// Kartan alustus
+//================================================================================
+Function InitializeGameMap()
+    For x=0 To MAPSIZE-1
+        For y=0 To MAPSIZE-1
+            RAILS(x,y,0) = TR_EMPTY
+            RAILS(x,y,1) = TR_EMPTY
+        Next y
+    Next x
 EndFunction 

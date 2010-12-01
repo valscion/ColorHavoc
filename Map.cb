@@ -18,8 +18,8 @@ Const TILE_EMPTY     = 255
 // m‰‰r‰‰v‰t palikoiden x- ja y-koordinaatit, kolmas ulottuvuus sis‰lt‰‰
 // tiedon siit‰, kumpi palikka on p‰‰ll‰.
 // Taulukkojen soluihin tallennettavat vakiot ovat samat kuin MAPS-taulukolla.
-// (tileX, tileY, 0) = Alla oleva palikka
-// (tileX, tileY, 1) = P‰‰ll‰ oleva palikka
+// (tileX, tileY, 0) = P‰‰ll‰ oleva palikka
+// (tileX, tileY, 1) = Alla oleva palikka
 Dim RAILS(MAPSIZE-1,MAPSIZE-1,1)
 
 // Kokoelma erikoispaloja (alku- ja loppup‰‰t, maalauspalikat yms.) varten.
