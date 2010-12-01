@@ -70,7 +70,7 @@ Function DrawGameMap()
                     // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
                     // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
                     // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
-                    If RAILS(x,y,0)<>TR_EMPTY
+                    If RAILS(x,y,0)<>TILE_EMPTY And RAILS(x,y,1)<>TILE_EMPTY And RAILS(x,y,0)<>RAILS(x,y,1) Then
                         tmp = RAILS(x,y,0)
                         RAILS(x,y,0) = RAILS(x,y,1)
                         RAILS(x,y,1) = tmp
