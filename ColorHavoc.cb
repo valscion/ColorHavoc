@@ -12,7 +12,7 @@ SCREEN TILESIZE*MAPSIZE + BORDERSIZE*2, TILESIZE*MAPSIZE + BORDERSIZE*2 + 280
 
 // Kokoelma tallennetuille kartoille
 Type MAPS
-    Field folderPath As String
+    Field filePath   As String
     Field name       As String
     Field author     As String
     Field hash       As String // MD5-hash tiedoista.

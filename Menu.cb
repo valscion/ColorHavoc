@@ -29,8 +29,6 @@ Function DrawMenu( _menu = MNU_MAIN )
             SetFont FONTS( FNT_MENU )
         ElseIf DrawMenuItem( "Exit program", 300 ) Then
             Exit
-        ElseIf DrawMenuItem( "Credits", 400 ) Then
-            DrawOverlayInfo( "Made by:|  VesQ", "Credits", 400 )
         EndIf
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
@@ -140,8 +138,7 @@ Function DrawOverlayInfo( _txt$, _title$ = "Info", _bottomY=-1 )
     
     SetFont FONTS( FNT_OVERLAYMENU )
     For i=1 To CountWords( _txt$, "|" )
-        txtPiece$ = GetWord( _txt$, i, "|" )
-        Text infoX+20, infoY+60+(i-1)*TextHeight("H"), txtPiece$
+        Text infoX+20, infoY+60+(i-1)*TextHeight("H"), GetWord( _txt$, i, "|" )
     Next i
     
     bgImg = MakeImage( ScreenWidth(), ScreenHeight() )
