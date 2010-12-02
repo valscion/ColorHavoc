@@ -99,10 +99,15 @@ Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
                     ActiveInput( -1 )
                     
                     // Tallennetaan tiedosto.
-                    SaveMapFile( savePath$ )
+                    saved = SaveMapFile( savePath$ )
                     
-                    // Arvotaan uusi uniikki tiedostonimi. Tämä tietysti pois valmiissa pelissä.
-                    savePath$ = getTmpFilePath()
+                    If saved Then
+                        DrawOverlayInfo( "The map was saved successfully", "Info", gOverlayY+135 )
+                        // Arvotaan uusi uniikki tiedostonimi. Tämä tietysti pois valmiissa pelissä.
+                        savePath$ = getTmpFilePath()
+                    Else
+                        DrawOverlayInfo( "There was a problem with map saving!|Please, try again.", "Error", gOverlayY+135 )
+                    EndIf
                 Else
                     // Jos ei oltu syötteiden päällä, niin suljetaan syötteet.
                     ActiveInput( -1 )

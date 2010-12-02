@@ -21,6 +21,8 @@ Const TILE_EMPTY     = 255
 // (tileX, tileY, 0) = P‰‰ll‰ oleva palikka
 // (tileX, tileY, 1) = Alla oleva palikka
 Dim RAILS(MAPSIZE-1,MAPSIZE-1,1)
+Const RAIL_TOP = 0
+Const RAIL_UNDER = 1
 
 // Kokoelma erikoispaloja (alku- ja loppup‰‰t, maalauspalikat yms.) varten.
 Type SPECIALBLOCKS

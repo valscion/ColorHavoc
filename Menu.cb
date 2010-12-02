@@ -14,10 +14,12 @@ Const MNU_LOAD       = 3
 // Valikon piirt‰minen, p‰‰silmukka.
 //================================================================================
 Function DrawMenu( _menu = MNU_MAIN )
-    SetFont FONTS( FNT_MENU )
+    
     
     Repeat
         DrawImage GUIIMAGES( GUI_MENUBG ), 0, 0
+
+        SetFont FONTS( FNT_MENU )
         
         If DrawMenuItem( "Start game!", 100 ) Then
             StartGame()
@@ -27,6 +29,8 @@ Function DrawMenu( _menu = MNU_MAIN )
             SetFont FONTS( FNT_MENU )
         ElseIf DrawMenuItem( "Exit program", 300 ) Then
             Exit
+        ElseIf DrawMenuItem( "Credits", 400 ) Then
+            DrawOverlayInfo( "Made by:|  VesQ", "Credits", 400 )
         EndIf
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
@@ -37,6 +41,7 @@ EndFunction
 // Valikon valinnan piirt‰minen
 //================================================================================
 Function DrawMenuItem( _txt$, _yPosition )
+    ret = False
     Color cbWhite
     
     x_coord = ScreenWidth()/2-100
@@ -44,14 +49,14 @@ Function DrawMenuItem( _txt$, _yPosition )
     
     If MouseOver( x_coord, _yPosition, 200, 40 ) Then
         Color cbGreen
-        If MouseHit(1) Then
-            Return True
+        If MouseUp(1) Then
+            ret = True
         EndIf
     EndIf
     
     Box x_coord, _yPosition, 200, 40, OFF 
     
-    Return False
+    Return ret
 EndFunction 
 
 //================================================================================
@@ -93,4 +98,70 @@ Function DrawOverlayMenu( _title$ = "Menu", _y=-1, _height=-1 )
     SetFont FONTS( FNT_DEFAULT )
     
     Return bgImg
+EndFunction 
+
+//================================================================================
+// Ilmoitus-overlay, poistuu itsest‰‰n vakion INFO_DURATION (millisekunneissa)
+// m‰‰r‰‰m‰n ajan j‰lkeen, tai jos k‰ytt‰j‰ klikkaa hiirell‰ tai painaa jotain
+// n‰pp‰int‰. Parametrina annetaan info-teksti ja mahdollinen otsikko. Tekstiss‰
+// pipe-merkki "|" tarkoittaa rivinvaihtoa.
+//================================================================================
+Const INFO_DURATION = 4000 // 4 sekuntia
+Function DrawOverlayInfo( _txt$, _title$ = "Info", _bottomY=-1 )
+    
+    SetFont FONTS( FNT_OVERLAYMENU )
+    txtHeight = TextHeight("H")
+    
+    infoWidth = ScreenWidth() - BORDERSIZE*2 - 60
+    infoHeight = 70 + ( Int( CountWords( _txt$, "|" ) ) ) * txtHeight
+    infoX = (ScreenWidth() - infoWidth)/2
+    If _bottomY=-1 Then 
+        infoY = BORDERSIZE + 50
+    Else
+        infoY = _bottomY - infoHeight
+    EndIf
+    
+    Color 120, 217, 255
+    Box infoX, infoY, infoWidth, infoHeight, ON
+    Color 32, 32, 32
+    Box infoX, infoY, infoWidth, infoHeight, OFF
+    
+    SetFont FONTS( FNT_OVERLAYMENU_TITLE )
+    Color 128,128,128
+    Text infoX+(infoWidth-TextWidth(_title$))/2+2, infoY+6, _title
+    Color cbBlack
+    Text infoX+(infoWidth-TextWidth(_title$))/2, infoY+4, _title
+    
+    Color 32, 32, 32
+    Line infoX+1, infoY+45, infoX+infoWidth-2, infoY+45
+    Line infoX+1, infoY+48, infoX+infoWidth-2, infoY+48
+    
+    Color cbBlack
+    
+    SetFont FONTS( FNT_OVERLAYMENU )
+    For i=1 To CountWords( _txt$, "|" )
+        txtPiece$ = GetWord( _txt$, i, "|" )
+        Text infoX+20, infoY+60+(i-1)*TextHeight("H"), txtPiece$
+    Next i
+    
+    bgImg = MakeImage( ScreenWidth(), ScreenHeight() )
+    CopyBox 0, 0, ScreenWidth(), ScreenHeight(), 0, 0, SCREEN(), Image(bgImg)
+    
+    ClearMouse()
+    ClearKeys()
+    
+    loopStart = Timer()
+    Repeat
+        DrawImage bgImg, 0, 0
+    
+        If MouseUp(1) Or MouseUp(2) Or MouseUp(3) Or GetKey() Or loopStart+INFO_DURATION < Timer() Then
+            Exit
+        EndIf
+        
+        DrawScreen
+    Forever
+    
+    Color cbWhite
+    Return True
+    
 EndFunction 

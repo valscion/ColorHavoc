@@ -36,19 +36,24 @@ Function EditGameMap()
     // ja asetetaan nykyinen raide toisarvoiseksi. Uusi raite ensiarvoiseksi.
     // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva.
     If blockType<>False Then
-        If blockType <> RAILS( gEditedTileX, gEditedTileY, 0 ) Then
+        If blockType <> RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) Then
             // Ei muuteta palasia, jos edellinen palanen on jo x-risteys ja uusi palanen olisi suora.
-            If Not ( ( blockType = TR_VERTICAL Or blockType = TR_HORIZONTAL ) And RAILS( gEditedTileX, gEditedTileY, 1 ) = TR_XCROSS )
+            If Not ( ( blockType = TR_VERTICAL Or blockType = TR_HORIZONTAL ) And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS )
                 // Tarkistetaan, tekeekˆ uusi raide vanhan kanssa x-risteyksen.
-                If blockType = TR_VERTICAL And RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_HORIZONTAL Then
-                    RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_XCROSS
-                    RAILS( gEditedTileX, gEditedTileY, 1 ) = TR_XCROSS
-                ElseIf blockType = TR_HORIZONTAL And RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_VERTICAL Then
-                    RAILS( gEditedTileX, gEditedTileY, 0 ) = TR_XCROSS
-                    RAILS( gEditedTileX, gEditedTileY, 1 ) = TR_XCROSS
+                If blockType = TR_VERTICAL And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_HORIZONTAL Then
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = TR_XCROSS
+                ElseIf blockType = TR_HORIZONTAL And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_VERTICAL Then
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = TR_XCROSS
+                ElseIf RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS Then
+                    // Jos vanha raide on X-risteys ja uusi raide on mutka, poistetaan X-risteys ja j‰tet‰‰n vain mutka.
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = blockType
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = TR_EMPTY
                 Else
-                    RAILS( gEditedTileX, gEditedTileY, 1 ) = RAILS( gEditedTileX, gEditedTileY, 0 )
-                    RAILS( gEditedTileX, gEditedTileY, 0 ) = blockType
+                    // Muuten vain siirret‰‰n vanha pala alle ja laitetaan uusi palanen p‰‰lle.
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = RAILS( gEditedTileX, gEditedTileY, RAIL_TOP )
+                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = blockType
                 EndIf
             EndIf
         EndIf
@@ -71,10 +76,10 @@ Function DrawGameMap()
                     // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
                     // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
                     // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
-                    If RAILS(x,y,1)<>TR_EMPTY Then
-                        tmp = RAILS(x,y,0)
-                        RAILS(x,y,0) = RAILS(x,y,1)
-                        RAILS(x,y,1) = tmp
+                    If RAILS(x,y,RAIL_UNDER)<>TR_EMPTY Then
+                        tmp = RAILS(x,y,RAIL_TOP)
+                        RAILS(x,y,RAIL_TOP) = RAILS(x,y,RAIL_UNDER)
+                        RAILS(x,y,RAIL_UNDER) = tmp
                     EndIf
                 ElseIf MouseHit(2) Then
                     // Hiiren kakkospainiketta (yleens‰ oikeata) painiketta painettiin.
@@ -193,8 +198,8 @@ EndFunction
 Function InitializeGameMap()
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
-            RAILS(x,y,0) = TR_EMPTY
-            RAILS(x,y,1) = TR_EMPTY
+            RAILS(x,y,RAIL_TOP) = TR_EMPTY
+            RAILS(x,y,RAIL_UNDER) = TR_EMPTY
         Next y
     Next x
 EndFunction 
