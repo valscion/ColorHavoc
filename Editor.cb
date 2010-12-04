@@ -99,6 +99,23 @@ Function Editor()
         If saveClicked Then EditorSaveMenu(currentMap$, startY+240, 180 ) 
         If loadClicked Then EditorLoadMenu( startY+240, 400 )
         
+        If newClicked  Then
+            // New-nappulaa klikattiin. Tyhjennet‰‰n kartta ja sen tiedot.
+            For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+                If bl\img <> 0 Then DeleteImage bl\img
+                Delete bl
+            Next bl
+            
+            gMapAuthor = ""
+            gMapName = ""
+            
+            blockType = -1
+            blockColor = TR_GENERAL
+            blockDirections = 0
+            
+            blockImg = MakeImage(1,1)
+        EndIf
+        
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
 EndFunction 

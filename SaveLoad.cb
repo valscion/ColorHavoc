@@ -229,13 +229,13 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
                         gMapAuthor = chosenFileAuthor$
                         gMapName = chosenFileName$
                         DrawOverlayInfo( "The map was loaded successfully", "Info", gOverlayY+135 )
+                        
+                        // Poistutaan silmukasta, eihän latausruutua enää tarvitse pitää avoinna.
+                        Exit
                     Else
                         errorInfo$ = getLoadMapError( loaded )
                         DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$, "Error", gOverlayY+135 )
                     EndIf
-                Else
-                    // Jos ei oltu syötteiden päällä, niin suljetaan syötteet.
-                    ActiveInput( -1 )
                 EndIf
             Else
                 // Jos  hiirellä klikattiin overlayn ulkopuolelta, niin poistutaan.
@@ -249,6 +249,8 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
         
         DrawScreen
     Forever
+    
+    Return True
 EndFunction
 
 //================================================================================
@@ -379,6 +381,8 @@ EndFunction
 //   -3: Kartan tekijä tai nimi oli tyhjä.
 //   -4: MD5-hash oli virheellinen
 //   -5: Kartan data oli virheellistä
+// Palutusarvon voi antaa funktiolle getLoadMapError( virhekoodi ), joka
+// palauttaa virhekoodiin liittyvän tiedon selkokielisenä.
 //================================================================================
 Function LoadMapFile( _filePath$ )
 
@@ -423,12 +427,8 @@ Function LoadMapFile( _filePath$ )
                                     sb\blockType = ReadByte( f )
                                     sb\directions = ReadByte( f )
                                     
-                                    colors$ = ReadString2( f, 9 )
-                                    
-                                    sb\blockColors = ""
                                     For i=1 To 9
-                                        colorBit = Left( colors$, 1 )
-                                        colors$ = Right( colors$, Len( colors$ ) - 1 )
+                                        colorBit = ReadByte( f )
                                         If colorBit <> Asc(" ") Then
                                             sb\blockColors = sb\blockColors + colorBit + " "
                                         EndIf
@@ -494,6 +494,24 @@ Function LoadMapFile( _filePath$ )
         
         // Kartan data oli virheellistä
         If nonValid Then ret = -5
+    EndIf
+    
+    If ret = True Then
+        // Jos kartta on vielä tähän mennessä validi, niin tarkistetaan MD5-hash.
+        md5source$ = mapName$ + mapAuthor$
+        For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+            md5source$ = md5source$ + bl\tileX
+            md5source$ = md5source$ + bl\tileY
+            md5source$ = md5source$ + bl\blockType
+            md5source$ = md5source$ + bl\directions
+            md5source$ = md5source$ + bl\blockColors
+        Next bl
+        
+        // Tehdään tarkistus tiedoston MD5-hashia vasten.
+        If MD5( md5source$ ) <> mapMD5Hash$ Then
+            // Hashit eivät olleet samoja.
+            ret = -4
+        EndIf
     EndIf
     
     Return ret
