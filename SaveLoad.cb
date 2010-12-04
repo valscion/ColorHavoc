@@ -7,13 +7,13 @@
 //================================================================================
 // Tallennusmenun piirtäminen editoriin.
 //================================================================================
-Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
+Function EditorSaveMenu( savePath$ = "", _bottomY=-1, _height=-1 )
     If savePath$ = "" Then 
         savePath$ = getTmpFilePath() 'Editor.cb
     EndIf
     
     // Otetaan piirretty tausta talteen
-    bgImg = DrawOverlayMenu( "Save map", _y, _height )
+    bgImg = DrawOverlayMenu( "Save map", _bottomY, _height )
     
     // Syötteen maksimipituus, 32 merkkiä.
     SetFont FONTS( FNT_DEFAULT )
@@ -23,8 +23,8 @@ Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
     authorInput = NewInput()
     nameInput = NewInput()
     
-    // Asetetaan syötteet epäaktiivisiksi.
-    ActiveInput( -1 )
+    // Asetetaan tekijän syöte aktiiviseksi aluksi.
+    ActiveInput( authorInput )
     
     // Asetetaan syötteidein kursorit merkkijonojen loppuun.
     SetInput2Position( authorInput, Len(gMapAuthor) )
@@ -118,6 +118,15 @@ Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
             EndIf
         EndIf
         
+        // Syötteiden vaihto Enter- ja TAB-näppäimellä
+        If KeyHit(cbKeyReturn) Or KeyHit(cbKeyEnter) Or KeyHit(cbKeyTab) Then
+            If ActiveInput() = authorInput Then
+                ActiveInput( nameInput )
+            Else
+                ActiveInput( authorInput )
+            EndIf
+        EndIf
+        
         // Hoidetaan syötteiden piirto.
         SetFont FONTS( FNT_DEFAULT )
         gMapAuthor = Input2( authorInput, gMapAuthor, gOverlayX+120, gOverlayY+60, 32 )
@@ -129,7 +138,118 @@ Function EditorSaveMenu( savePath$ = "", _y=-1, _height=-1 )
         
         DrawScreen
     Forever
+    
+    // Asetetaan syötteet epäaktiivisiksi
+    ActiveInput( -1 )
+    
+    Return True
 EndFunction 
+
+//================================================================================
+// Latausmenun piirtäminen editoriin.
+//================================================================================
+Function EditorLoadMenu( _bottomY=-1, _height=-1 )
+
+    // Ladataan karttalista muistiin.
+    If LoadMapList() = False Then
+        DrawOverlayInfo( "No maps found in 'saves' directory!", "Error", _bottomY )
+        Return False
+    EndIf
+
+    // Otetaan piirretty tausta talteen
+    bgImg = DrawOverlayMenu( "Load map", _bottomY, _height )
+    
+    // Tyhjennetään hiiripuskuri, ettei valikko vain välähdä ruudulla.
+    ClearMouse()
+    Repeat
+        DrawImage bgImg, 0, 0
+        
+        // Piirretään karttalista ruudulle
+        SetFont FONTS( FNT_DEFAULT )
+        Color cbWhite
+        i=0
+        For map.MAPS = Each MAPS
+            Color cbWhite
+            Text gOverlayX+10, gOverlayY+60 + 44*i, map\name
+            Color cbBlue
+            Text gOverlayX+40, gOverlayY+80 + 44*i, map\author
+            
+            // Tarkistetaan, onko hiiri juuri tämän kartan päällä
+            If MouseOver( gOverlayX+5, gOverlayY+59 + 44*i, gOverlayWidth-20, 42 ) Then
+                // Vaihdetaan ympärillä olevan laatikon väriä
+                Color cbGreen
+                
+                // Jos hiirellä klikataan, otetaan kartta valituksi.
+                // Otetaan muistiin myös kartan tekijä ja nimi.
+                If MouseUp(1) Then
+                    chosenFile$ = map\filePath
+                    chosenFileAuthor$ = map\author
+                    chosenFileName$ = map\name
+                EndIf
+            ElseIf chosenFile$ = map\filePath Then
+                // Tämä kartta on valittu, piirretään sille valkoiset reunukset.
+                Color cbWhite
+            Else
+                // Jos hiiri ei ole kartan päällä, eikä kartta ole valittuna.
+                Color 64, 64, 64
+            EndIf
+            
+            Box gOverlayX+5, gOverlayY+59 + 44*i, gOverlayWidth-20, 42, OFF
+            
+            i = i + 1
+        Next map
+        
+        // Lataustekstin laatikon piirto
+        If MouseOver( gOverlayX+80, _bottomY-40, gOverlayWidth-160, 30 ) Then
+            Color cbWhite
+        Else
+            Color 0, 0, 192
+        EndIf
+        // Paksummat reunat.
+        Box gOverlayX+80, _bottomY-40, gOverlayWidth-160, 30, OFF
+        Box gOverlayX+81, _bottomY-39, gOverlayWidth-162, 28, OFF
+        
+        // Piirretään teksti keskitetysti ruudulle, laatikon sisään
+        SetFont FONTS( FNT_OVERLAYMENU )
+        Color cbWhite
+        txt$ = "Fire up an"+"d load the map!"
+        Text (ScreenWidth()-TextWidth(txt))/2, _bottomY-36, txt
+        
+        // Hiiren klikkauksen eri toiminnot
+        If MouseUp(1) Then
+            If MouseOver( gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight ) Then
+                // Hiiren klikkaus tapahtui overlayn sisällä.
+                If MouseOver( gOverlayX+80, _bottomY-40, gOverlayWidth-160, 30 )
+                    // Klikattiin kartan latausnapista.
+                    
+                    // Ladataan tiedosto.
+                    loaded = LoadMapFile( chosenFile$ )
+                    
+                    If loaded = True Then
+                        gMapAuthor = chosenFileAuthor$
+                        gMapName = chosenFileName$
+                        DrawOverlayInfo( "The map was loaded successfully", "Info", gOverlayY+135 )
+                    Else
+                        errorInfo$ = getLoadMapError( loaded )
+                        DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$, "Error", gOverlayY+135 )
+                    EndIf
+                Else
+                    // Jos ei oltu syötteiden päällä, niin suljetaan syötteet.
+                    ActiveInput( -1 )
+                EndIf
+            Else
+                // Jos  hiirellä klikattiin overlayn ulkopuolelta, niin poistutaan.
+                Exit
+            EndIf
+        EndIf
+        
+        // Täytyy ennen DrawScreeniä tarkistaa, halutaanko poistua silmukasta.
+        // Muuten ruutu välähtää.
+        If EscapeKey() Or KeyHit(cbKeyQ) Then Exit
+        
+        DrawScreen
+    Forever
+EndFunction
 
 //================================================================================
 // Kartan varsinainen tallennus. Huomaa "saves" kansiossa oleva tiedosto, joka
@@ -183,66 +303,6 @@ Function SaveMapFile( _path$ )
     Return True
 EndFunction 
 
-
-//================================================================================
-// Latausmenun piirtäminen editoriin.
-//================================================================================
-Function EditorLoadMenu( _y=-1, _height=-1 )
-    // Otetaan piirretty tausta talteen
-    bgImg = DrawOverlayMenu( "Load map", _y, _height )
-    
-    // Ladataan karttalista muistiin.
-    LoadMapList()
-    
-    Repeat
-        // Lataustekstin laatikon piirto
-        If MouseOver( gOverlayX+80, gOverlayY+135, gOverlayWidth-160, 30 ) Then
-            Color cbWhite
-        Else
-            Color 0, 0, 192
-        EndIf
-        // Paksummat reunat.
-        Box gOverlayX+80, gOverlayY+135, gOverlayWidth-160, 30, OFF
-        Box gOverlayX+81, gOverlayY+136, gOverlayWidth-162, 28, OFF
-        
-        // Piirretään teksti keskitetysti ruudulle, laatikon sisään
-        Color cbWhite
-        txt$ = "Fire up an""d load the map!"
-        Text (ScreenWidth()-TextWidth(txt))/2, gOverlayY+139, txt
-        
-        // Hiiren klikkauksen eri toiminnot
-        If MouseUp(1) Then
-            If MouseOver( gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight ) Then
-                // Hiiren klikkaus tapahtui overlayn sisällä.
-                If MouseOver( gOverlayX+80, gOverlayY+135, gOverlayWidth-160, 30 )
-                    // Klikattiin kartan latausnapista.
-                    
-                    // Ladataan tiedosto.
-                    loaded = LoadMapFile( chosenFile$ )
-                    
-                    If loaded Then
-                        DrawOverlayInfo( "The map was loaded successfully", "Info", gOverlayY+135 )
-                    Else
-                        DrawOverlayInfo( "There was a problem with loading the map!|Are you sure that there are any maps at all?", "Error", gOverlayY+135 )
-                    EndIf
-                Else
-                    // Jos ei oltu syötteiden päällä, niin suljetaan syötteet.
-                    ActiveInput( -1 )
-                EndIf
-            Else
-                // Jos  hiirellä klikattiin overlayn ulkopuolelta, niin poistutaan.
-                Exit
-            EndIf
-        EndIf
-        
-        // Täytyy ennen DrawScreeniä tarkistaa, halutaanko poistua silmukasta.
-        // Muuten ruutu välähtää.
-        If EscapeKey() Or ( ActiveInput()=-1 And KeyHit(cbKeyQ) ) Then Exit
-        
-        DrawScreen
-    Forever
-EndFunction
-
 //================================================================================
 // Funktio lataa kaikkien karttojen tiedot muistiin. Tietoihin kuuluu siis
 // tiedostopolun lisäksi kartan tekijä, nimi ja md5-hash. Tiedot tallennetaan 
@@ -284,14 +344,13 @@ Function LoadMapList()
                             
                             // Sitten tarkistetaan ettei tekijä tai kartta ole tyhjä, eikä
                             // md5-hashin pituus ole väärä (ei-32). 
-                            If mapName$ <> "" And mapAuthor$ <> "" And Len( mapMD5Hash$ ) <> 32 Then
+                            If mapName$ <> "" And mapAuthor$ <> "" And Len( mapMD5Hash$ ) = 32 Then
                                 // Nytten voidaan laittaa tiedot muistiin.
                                 map.MAPS = New( MAPS )
                                 map\filePath = CurrentDir() + file$
                                 map\name = mapName$
                                 map\author = mapAuthor$
                                 map\hash = mapMD5Hash$
-                                
                                 didWeFindAMap = True
                             EndIf
                         EndIf
@@ -302,6 +361,9 @@ Function LoadMapList()
     EndSearch
     // Jösses mikä sisennysten sulkeminen :D
     
+    // Vaihdetaan takaisin edelliseen kansioon.
+    ChDir ".."
+    
     Return didWeFindAMap
     
 EndFunction 
@@ -309,9 +371,14 @@ EndFunction
 //================================================================================
 // Lataa yksittäisen kartan nyt tällä hetkellä olevaksi kartaksi.
 // Funktio suorittaa heti tietojen lukemisen jälkeen tarkistuksen, ovatko
-// kaikki palaset valideja. Jos eivät ole, tyhjennetään kartta muistista ja
-// palautetaan False. Jos funktio onnistuu lataamaan kartan muistiin, palautetaan
-// True.
+// kaikki palaset valideja. Funktio palauttaa arvon 1 (True), jos kaikki meni
+// hyvin. Muuten mahdolliset virhearvot ovat:
+//    0: Karttaa ei löytynyt annetusta tiedostopolusta
+//   -1: Tiedoston signature oli virheellinen
+//   -2: Tallennuksen versio oli virheellinen
+//   -3: Kartan tekijä tai nimi oli tyhjä.
+//   -4: MD5-hash oli virheellinen
+//   -5: Kartan data oli virheellistä
 //================================================================================
 Function LoadMapFile( _filePath$ )
 
@@ -325,6 +392,9 @@ Function LoadMapFile( _filePath$ )
     
     For map.MAPS = Each MAPS
         If map\filePath = _filePath$ Then
+            // Löytyi tiedosto annetusta polusta
+            ret = True
+            
             f = OpenToRead( _filePath$ )
                 // Luetaan tiedostosta kartan tiedot. Tarkistetaan samalla
                 // että kartta on tiedoiltaan sama kuin muistissa oleva.
@@ -339,63 +409,120 @@ Function LoadMapFile( _filePath$ )
                         mapMD5Hash$ = Trim( ReadString2( f, 32 ) )
                         
                         // Verrataan luettuja tietoja muistissa oleviin.
-                        If mapName$ = map\name And mapAuthor$ = map\author And mapMD5Hash$ = map\hash Then
-                            // Näyttäis olevan kaikki jeesh.
-                            ret = True
-                            
-                            // Jatketaan tietojen hakua, kunnes tulee stoppi. 
-                            // Seuraavat loput tavut sisältävät kartan datan.
-                            While Not EOF( f )
-                                sb.SPECIALBLOCKS = New( SPECIALBLOCKS )
-                                sb\tileX = ReadByte( f )
-                                sb\tileY = ReadByte( f )
-                                sb\blockType = ReadByte( f )
-                                sb\directions = ReadByte( f )
+                        If mapName$ = map\name And mapAuthor$ = map\author Then
+                            If mapMD5Hash$ = map\hash Then
+                                // Näyttäis olevan kaikki jeesh.
+                                ret = True
                                 
-                                colors$ = ReadString2( f, 9 )
-                                
-                                For i=1 To 9
-                                    colorBit = ReadByte( f )
-                                    If colorBit <> Asc(" ") Then
-                                        sb\blockColors = sb\blockColors + colorBit + " "
-                                    EndIf
-                                Next i
-                                
-                                sb\blockColors = Trim( sb\blockColors )
-                                
-                                ReadString2( f, 3 ) // Ei vielä käytössä
-                            Wend
+                                // Jatketaan tietojen hakua, kunnes tulee stoppi. 
+                                // Seuraavat loput tavut sisältävät kartan datan.
+                                While Not EOF( f )
+                                    sb.SPECIALBLOCKS = New( SPECIALBLOCKS )
+                                    sb\tileX = ReadByte( f )
+                                    sb\tileY = ReadByte( f )
+                                    sb\blockType = ReadByte( f )
+                                    sb\directions = ReadByte( f )
+                                    
+                                    colors$ = ReadString2( f, 9 )
+                                    
+                                    sb\blockColors = ""
+                                    For i=1 To 9
+                                        colorBit = Left( colors$, 1 )
+                                        colors$ = Right( colors$, Len( colors$ ) - 1 )
+                                        If colorBit <> Asc(" ") Then
+                                            sb\blockColors = sb\blockColors + colorBit + " "
+                                        EndIf
+                                    Next i
+                                    
+                                    sb\blockColors = Trim( sb\blockColors )
+                                    
+                                    sb\img = 0 // Ei ladata kuvaa tässä.
+                                    
+                                    ReadString2( f, 3 ) // Ei vielä käytössä
+                                Wend
+                            Else
+                                // MD5-hash oli virheellinen
+                                ret = -4
+                            EndIf
+                        Else
+                            // Kartan tekijä tai nimi oli eri kuin muistiin ladatun kartan.
+                            ret = -3
                         EndIf
+                    Else
+                        // Tallennuksen versio oli virheellinen
+                        ret = -2
                     EndIf
+                Else
+                    // Väärä signature
+                    ret = -1
                 EndIf
             CloseFile f
         EndIf
     Next map
     // Toinen aika ihana sisennysten sulkeminen :D
     
-    // Sitten tarkistetaan juuri muistiin ladatun kartan oikeellisuus.
-    nonValid = ret
-    For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
-        If CheckBlockValidity( bl\blockType, bl\blockColors, bl\directions ) = False Then
-            nonValid = True
-        ElseIf bl\tileX < 0 Or bl\tileX > MAPSIZE-1 Or bl\tileY < 0 Or bl\tileY > MAPSIZE-1 Then
-            nonValid = True
+    // Jatketaan kartan latausta eteenpäin, jos tähän mennessä kaikki on mennyt jees.
+    If ret = True Then
+        // Sitten tarkistetaan juuri muistiin ladatun kartan oikeellisuus.
+        nonValid = False
+        For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+            If CheckBlockValidity( bl\blockType, bl\blockColors, bl\directions ) = False Then
+                nonValid = True
+                If DEBUG Then
+                    // DEBUG-moodissa tehdään kuvaava MakeError
+                    nl$ = Chr(10)+Chr(13)
+                    error$ = "Erroneous block at ( " + bl\tileX + ", " + bl\tileY + " )" + nl$
+                    error$ = error$ + "Type: '" + bl\blockType + "'" + nl$
+                    error$ = error$ + "Colors: '" + bl\blockColors + "'" + nl$
+                    error$ = error$ + "Directions: '" + bl\directions + "'" + nl$
+                    MakeError error$
+                EndIf
+            ElseIf bl\tileX < 0 Or bl\tileX > MAPSIZE-1 Or bl\tileY < 0 Or bl\tileY > MAPSIZE-1 Then
+                nonValid = True
+            EndIf
+            
+            If nonValid Then Exit // Turha loopata enää, kun kartta ei ole validi.
+        Next bl
+        
+        If nonValid Then
+            // Tyhjätään kartta muistista, koska se oli virheellinen.
+            For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+                If bl\img <> 0 Then DeleteImage bl\img
+                Delete bl
+            Next bl
         EndIf
         
-        If nonValid Then Exit // Turha loopata enää, kun kartta ei ole validi.
-    Next bl
-    
-    If nonValid Then
-        // Tyhjätään kartta muistista, koska se ei ollut oikeellinen.
-        For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
-            If bl\img <> 0 Then DeleteImage bl\img
-            Delete bl
-        Next bl
+        // Kartan data oli virheellistä
+        If nonValid Then ret = -5
     EndIf
     
-    If nonValid Then ret = False
-    
     Return ret
+EndFunction
+
+//================================================================================
+// Funktio palauttaa LoadMapFile-funktion virhekoodin selityksen merkkijonona.
+//================================================================================
+Function getLoadMapError$( _errorCode )
+    // Perhanan buginen Select-Case rakenne... Täytyy tehdä If-ElseIf-Else :/
+    If _errorCode = 1 Then
+        ret$ = "There were no err"+"ors."
+    ElseIf _errorCode = 0 Then
+        ret$ = "No map found at the given filepath."
+    ElseIf _errorCode = -1 Then
+        ret$ = "Signature of the selected map was erroneous."
+    ElseIf _errorCode = -2 Then
+        ret$ = "The version of the map was unsupported."
+    ElseIf _errorCode = -3 Then
+        ret$ = "The maps author or title differed from the one in memory."
+    ElseIf _errorCode = -4 Then
+        ret$ = "MD5-hash of the map was incorrect."
+    ElseIf _errorCode = -5 Then
+        ret$ = "Map data was faulty."
+    Else
+        ret$ = "Unknown error."
+    EndIf
+    
+    Return ret$
 EndFunction
 
 //================================================================================
@@ -413,7 +540,7 @@ EndFunction
 // merkkijonona. Parametrina annetaan avoimen tiedoston kahva ja datan pituus.
 //================================================================================
 Function ReadString2$( _fileHandle, _len )
-    ret = ""
+    ret$ = ""
     For i=1 To _len
         If EOF( _fileHandle ) Then Exit // Estetään tiedoston yli lukeminen.
         ret = ret + Chr( ReadByte( _fileHandle ) )

@@ -25,6 +25,9 @@ Global gMapAuthor As String
 // Versionumero
 Const COH_VERSION$ = "0.1.1"
 
+// Ollaanko DEBUG-moodissa
+Const DEBUG = 1
+
 //--------------------------------------------------------------------------------
 // Includet
 //--------------------------------------------------------------------------------

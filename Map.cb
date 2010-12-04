@@ -76,6 +76,10 @@ EndFunction
 //================================================================================
 Function DrawBlocks()
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        // Jos palasella ei ole kuvaa, luodaan se. (Editor.cb)
+        If sb\img = 0 Then
+            sb\img = AssembleBlock( sb\blockType, sb\blockColors, sb\directions )
+        EndIf
         DrawImage sb\img, sb\tileX*TILESIZE+BORDERSIZE, sb\tileY*TILESIZE+BORDERSIZE
     Next sb
 EndFunction

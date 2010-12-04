@@ -64,22 +64,24 @@ Function Editor()
         saveClicked = DrawEditorButton( EDI_SAVE_UNSEL, BORDERSIZE+200, startY+250 )
         testClicked = DrawEditorButton( EDI_TEST_UNSEL, BORDERSIZE+300, startY+250 )
         
-        // Clear-nappula, joka tyhjent‰‰ kasatun laatan
-        If MouseOver( ScreenWidth()-BORDERSIZE-25, startY+80, 25, TILESIZE ) Then
-            DrawImage EDITORIMAGES( EDI_CLEARASSEMB_SEL ), ScreenWidth()-BORDERSIZE-25, startY+80
-            If blockType<>-1 Then
-                // Jos ollaan kasattu edes jonkinmoista laattaa, niin piirret‰‰n sen taustalle
-                // tummanpunainen laatikko.
+        If blockType<>-1 Then
+            // Jos ollaan kasattu edes jonkinmoista laattaa, niin piirret‰‰n Clear-nappula,
+            // joka tyhjent‰‰ valitun tilen. Piirret‰‰n laatan taustalle myˆs tummanpunainen
+            // laatikko.
+            If MouseOver( ScreenWidth()-BORDERSIZE-25, startY+80, 25, TILESIZE ) Then
+                DrawImage EDITORIMAGES( EDI_CLEARASSEMB_SEL ), ScreenWidth()-BORDERSIZE-25, startY+80
+                
                 Color 64,0,0
                 Box ScreenWidth()-BORDERSIZE-TILESIZE-30, startY+78, TILESIZE+4, TILESIZE+4
+                
+                If MouseHit(1) Then
+                    blockType=-1
+                    blockColor=TR_GENERAL
+                    blockDirections=0
+                EndIf
+            Else
+                DrawImage EDITORIMAGES( EDI_CLEARASSEMB_UNSEL ), ScreenWidth()-BORDERSIZE-25, startY+80
             EndIf
-            If MouseHit(1) Then
-                blockType=-1
-                blockColor=TR_GENERAL
-                blockDirections=0
-            EndIf
-        Else
-            DrawImage EDITORIMAGES( EDI_CLEARASSEMB_UNSEL ), ScreenWidth()-BORDERSIZE-25, startY+80
         EndIf
         
         // Tehd‰‰n uuden laatan kuva, jos jotain osaa on vaihdettu.
@@ -94,7 +96,8 @@ Function Editor()
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections )
         SetWindow "Valid: " + blockIsValid
         
-        If saveClicked Then EditorSaveMenu(currentMap$, startY+50, 180 ) 
+        If saveClicked Then EditorSaveMenu(currentMap$, startY+240, 180 ) 
+        If loadClicked Then EditorLoadMenu( startY+240, 400 )
         
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
@@ -387,11 +390,8 @@ Function ChangeBlock( _tileX, _tileY, _type, _color$, _directions )
     If _type = TYPE_ROADBLOCK Then
         _color = TR_GENERAL
         _directions = 0
-        _amount = 0
     ElseIf _type = TYPE_DIVIDER Then
         _color = TR_GENERAL
-        _amount = 0
-    ElseIf _type = TYPE_PAINTER Then
         _amount = 0
     EndIf
     

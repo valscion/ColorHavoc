@@ -65,11 +65,11 @@ EndFunction
 // sekä leveydestä.
 //================================================================================
 Global gOverlayX, gOverlayY, gOverlayWidth, gOverlayHeight
-Function DrawOverlayMenu( _title$ = "Menu", _y=-1, _height=-1 )
+Function DrawOverlayMenu( _title$ = "Menu", _bottomY=-1, _height=-1 )
     
-    If _y<0 Then gOverlayY = BORDERSIZE + 50 Else gOverlayY = _y
     If _height<0 Then gOverlayHeight = ScreenHeight() - BORDERSIZE*2 - 100 Else gOverlayHeight = _height
-    
+    If _bottomY<0 Then gOverlayY = BORDERSIZE + 50 Else gOverlayY = _bottomY - gOverlayHeight
+
     gOverlayWidth = ScreenWidth() - BORDERSIZE*2 - 60
     gOverlayX = (ScreenWidth() - gOverlayWidth)/2
     
@@ -99,12 +99,12 @@ Function DrawOverlayMenu( _title$ = "Menu", _y=-1, _height=-1 )
 EndFunction 
 
 //================================================================================
-// Ilmoitus-overlay, poistuu itsestään vakion INFO_DURATION (millisekunneissa)
-// määräämän ajan jälkeen, tai jos käyttäjä klikkaa hiirellä tai painaa jotain
-// näppäintä. Parametrina annetaan info-teksti ja mahdollinen otsikko. Tekstissä
-// pipe-merkki "|" tarkoittaa rivinvaihtoa.
+// Ilmoitus-overlay, poistuu itsestään vakion INFO_DURATION (millisekunneissa) ja
+// merkkien määrän määräämän ajan jälkeen, tai jos käyttäjä klikkaa hiirellä tai 
+// painaa jotain näppäintä. Parametrina annetaan info-teksti ja mahdollinen 
+// otsikko. Tekstissä pipe-merkki "|" tarkoittaa rivinvaihtoa.
 //================================================================================
-Const INFO_DURATION = 4000 // 4 sekuntia
+Const INFO_DURATION = 70 // 0.07 sekuntia per kirjain
 Function DrawOverlayInfo( _txt$, _title$ = "Info", _bottomY=-1 )
     
     SetFont FONTS( FNT_OVERLAYMENU )
@@ -147,11 +147,11 @@ Function DrawOverlayInfo( _txt$, _title$ = "Info", _bottomY=-1 )
     ClearMouse()
     ClearKeys()
     
-    loopStart = Timer()
+    loopDuration = Timer() + INFO_DURATION * Len( _txt )
     Repeat
         DrawImage bgImg, 0, 0
     
-        If MouseUp(1) Or MouseUp(2) Or MouseUp(3) Or GetKey() Or loopStart+INFO_DURATION < Timer() Then
+        If MouseUp(1) Or MouseUp(2) Or MouseUp(3) Or GetKey() Or loopDuration < Timer() Then
             Exit
         EndIf
         
