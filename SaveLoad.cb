@@ -168,12 +168,14 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
         SetFont FONTS( FNT_DEFAULT )
         Color cbWhite
         i=0
+        If MouseDoubleClick() Then doubleClick = True Else doubleClick = False
+        exitLoop = False
         For map.MAPS = Each MAPS
             Color cbWhite
             Text gOverlayX+10, gOverlayY+60 + 44*i, map\name
             Color cbBlue
             Text gOverlayX+40, gOverlayY+80 + 44*i, map\author
-            
+
             // Tarkistetaan, onko hiiri juuri t‰m‰n kartan p‰‰ll‰
             If MouseOver( gOverlayX+5, gOverlayY+59 + 44*i, gOverlayWidth-20, 42 ) Then
                 // Vaihdetaan ymp‰rill‰ olevan laatikon v‰ri‰
@@ -181,11 +183,30 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
                 
                 // Jos hiirell‰ klikataan, otetaan kartta valituksi.
                 // Otetaan muistiin myˆs kartan tekij‰ ja nimi.
-                If MouseUp(1) Then
+                If MouseUp(1) Or doubleClick Then
                     chosenFile$ = map\filePath
                     chosenFileAuthor$ = map\author
                     chosenFileName$ = map\name
+                    If doubleClick Then
+                        // Tuplaklikkauksella valitaan kartta ja poistutaan.
+                        
+                        // Ladataan tiedosto.
+                        loaded = LoadMapFile( chosenFile$ )
+                        
+                        If loaded = True Then
+                            gMapAuthor = chosenFileAuthor$
+                            gMapName = chosenFileName$
+                            DrawOverlayInfo( "The map was loaded successfully", "Info", gOverlayY+135 )
+                            
+                            // Poistutaan silmukasta, eih‰n latausruutua en‰‰ tarvitse pit‰‰ avoinna.
+                            exitLoop = True
+                        Else
+                            errorInfo$ = getLoadMapError( loaded )
+                            DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$, "Error", gOverlayY+135 )
+                        EndIf
+                    EndIf
                 EndIf
+                    
             ElseIf chosenFile$ = map\filePath Then
                 // T‰m‰ kartta on valittu, piirret‰‰n sille valkoiset reunukset.
                 Color cbWhite
@@ -245,7 +266,7 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
         
         // T‰ytyy ennen DrawScreeni‰ tarkistaa, halutaanko poistua silmukasta.
         // Muuten ruutu v‰l‰ht‰‰.
-        If EscapeKey() Or KeyHit(cbKeyQ) Then Exit
+        If EscapeKey() Or KeyHit(cbKeyQ) Or exitLoop Then Exit
         
         DrawScreen
     Forever
