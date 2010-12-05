@@ -39,7 +39,6 @@ Include "Menu.cb"
 Include "SaveLoad.cb"
 Include "Editor.cb"
 Include "Game.cb"
-'Include "BlockTesting.cb"
 
 //--------------------------------------------------------------------------------
 // K‰ynnistet‰‰n p‰‰valikko.

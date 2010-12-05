@@ -59,8 +59,7 @@ RAILIMGS(TR_XCROSS,1)      = RAILIMGS(TR_XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
 //================================================================================
 // Junien lataus muistiin ja junien kokoelman m‰‰rittely.
 //================================================================================
-RemStart
-/* Ei viel‰ k‰ytet‰ miss‰‰n, joten j‰tet‰‰n turhat lataukset pois.
+
 Type TRAINS
     Field obj         // Junan objekti
     Field trainColor  // V‰ri
@@ -86,8 +85,7 @@ Smooth2D OFF
 For i=0 To 6
     ShowObject TRAINOBJECTS( i ), OFF
 Next i
-*/
-RemEnd
+
 //================================================================================
 // Aloitus- ja lopetuskuvat
 //================================================================================

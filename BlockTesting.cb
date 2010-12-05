@@ -1,9 +1,0 @@
-amount = 1
-img = AssembleBlock( TILE_FINISH, "2 3 1 6 0 4", 15 )
-
-Repeat
-
-    DrawImage img, 10, 10
-    
-    DrawScreen
-Until EscapeKey() Or KeyHit(cbKeyQ) 

@@ -30,7 +30,7 @@ Function Editor()
                         If TileType(x,y) = TILE_EMPTY Then
                             // Lis‰t‰‰n uusi palanen, jos paikalla ei ole viel‰ mit‰‰n.
                             newSB.SPECIALBLOCKS = New(SPECIALBLOCKS)
-                            AddBlock( x, y, ConvertToInteger(newSB), blockType, blockColor, blockDirections, blockImg )
+                            AddBlock( x, y, blockType, blockColor, blockDirections, ConvertToInteger(newSB), blockImg )
                         EndIf
                     ElseIf MouseHit(2) Then
                         // Hiiren kakkospainike kumittaa.
@@ -371,8 +371,12 @@ EndFunction
 //================================================================================
 // Lis‰‰ palanen kokoelmaan.
 //================================================================================
-Function AddBlock( _tileX, _tileY, _ptr, _type, _color$, _directions, _img=0 )
-    newSB.SPECIALBLOCKS = ConvertToType(_ptr)
+Function AddBlock( _tileX, _tileY, _type, _color$, _directions, _img=0, _ptr=0 )
+    If _ptr <> 0 Then
+        newSB.SPECIALBLOCKS = ConvertToType(_ptr)
+    Else
+        newSB.SPECIALBLOCKS = New( SPECIALBLOCKS )
+    EndIf
     
     newSB\tileX = _tileX
     newSB\tileY = _tileY

@@ -10,14 +10,85 @@
 // Pelin p‰‰silmukka
 //================================================================================
 Function StartGame()
+
+    // Alustetaan kartta.
     InitializeGameMap()
+    
+    // Muuttuja, joka sis‰lt‰‰ tiedon saako raiteita muokkailla, eli onko junien
+    // liikutus k‰ynniss‰.
+    allowEditing = True
+    
     Repeat
         // Piirret‰‰n taustakuva pelialueelle
         DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
-    
-        ClsColor 64,0,0
-        EditGameMap()
-        DrawGameMap()
+        
+        If allowEditing Then
+            ClsColor 64,0,0
+            
+            // Muokataan hiirell‰ raiteita.
+            EditGameMap()
+            
+            // Piirret‰‰n raiteet ruudulle ja tarkistetan samalla hiiren
+            // klikkaukset (alla oleva raide p‰‰lle ja raiteiden poisto).
+            doubleClicked = MouseDoubleClick()
+            For x=0 To MAPSIZE-1
+                For y=0 To MAPSIZE-1
+                    If TileType(x,y) = TILE_TRACK And MouseOverTile(x,y) Then
+                        If doubleClicked Then
+                            // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
+                            // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
+                            // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
+                            If RAILS(x,y,RAIL_UNDER)<>TR_EMPTY Then
+                                tmp = RAILS(x,y,RAIL_TOP)
+                                RAILS(x,y,RAIL_TOP) = RAILS(x,y,RAIL_UNDER)
+                                RAILS(x,y,RAIL_UNDER) = tmp
+                            EndIf
+                        ElseIf MouseUp(2) Then
+                            // Hiiren kakkospainiketta (yleens‰ oikeata) painiketta painettiin.
+                            // Poistetaan hiiren alla oleva tile.
+                            DeleteTrack(x,y)
+                        EndIf
+                    EndIf
+                    
+                    // Piirret‰‰n palanen n‰ytˆlle
+                    DrawTrack(x,y)
+                Next y
+            Next x
+            
+        Else
+            ClsColor 0,0,0
+            
+            // Piirret‰‰n raiteet.
+            For x=0 To MAPSIZE-1
+                For y=0 To MAPSIZE-1
+                    DrawTrack( x, y )
+                Next y
+            Next x
+        EndIf
+        
+        // Enter-n‰pp‰imell‰ laitetaan junat liikkeelle / poistetaan junat.
+        If KeyHit( cbKeyReturn ) Then
+            // Vaihdetaan muokkauksen salliminen.
+            allowEditing = Not allowEditing
+            
+            If allowEditing Then
+                // Jos muokkaus sallitaan, poistetaan olemassa olevat junat kokoelmasta.
+                For tr.TRAINS = Each TRAINS
+                    DeleteObject tr\obj
+                    Delete tr
+                Next tr
+            Else
+                // Muulloin asetetaan junat paikoilleen alkupisteisiins‰.
+                PlaceTrains()
+            EndIf
+        EndIf
+        
+        // Piirret‰‰n objektit (junat) raiteiden j‰lkeen ja ennen kartan palasia.
+        'DrawGame
+        
+        // Piirret‰‰n kartan palaset.
+        DrawBlocks()
+        
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
     
@@ -59,41 +130,6 @@ Function EditGameMap()
         EndIf
     EndIf
 EndFunction
-
-
-//================================================================================
-// Kartan piirto
-//================================================================================
-Function DrawGameMap()
-
-    // Pit‰‰ tehd‰ tuplaklikkaustarkistus ennen for-looppia
-    If MouseDoubleClick() Then doubleclicked = True Else doubleclicked = False
-    
-    For x=0 To MAPSIZE-1
-        For y=0 To MAPSIZE-1
-            If TileType(x,y) = TILE_TRACK And MouseOverTile(x,y) Then
-                If doubleclicked Then
-                    // Jos tuplaklikattiin ja hiiri on juuri t‰m‰n laatan p‰‰ll‰,
-                    // niin vaihdetaan p‰‰ll‰ ja alla olevat laatat kesken‰‰n.
-                    // Tarkistetaan kuitenkin ett‰ paikalla on kaksi laattaa ylip‰‰ns‰.
-                    If RAILS(x,y,RAIL_UNDER)<>TR_EMPTY Then
-                        tmp = RAILS(x,y,RAIL_TOP)
-                        RAILS(x,y,RAIL_TOP) = RAILS(x,y,RAIL_UNDER)
-                        RAILS(x,y,RAIL_UNDER) = tmp
-                    EndIf
-                ElseIf MouseHit(2) Then
-                    // Hiiren kakkospainiketta (yleens‰ oikeata) painiketta painettiin.
-                    // Poistetaan hiiren alla oleva tile.
-                    DeleteTrack(x,y)
-                EndIf
-            EndIf
-            
-            // Piirret‰‰n palanen n‰ytˆlle
-            DrawTrack(x,y)
-        Next y
-    Next x
-EndFunction 
-
 
 //================================================================================
 // Hieman monimutkainen funktio uuden raiteen selvitt‰miseksi. Uuden palasen
@@ -196,10 +232,56 @@ EndFunction
 // Kartan alustus
 //================================================================================
 Function InitializeGameMap()
+    // Tyhjennet‰‰n kartta
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
             RAILS(x,y,RAIL_TOP) = TR_EMPTY
             RAILS(x,y,RAIL_UNDER) = TR_EMPTY
         Next y
     Next x
+    
+    // Rakennetaan testikartta
+    // AddBlock( _tileX, _tileY, _type, _color$, _directions, _img=0, _ptr=0 )
+    AddBlock( 0, 0, TILE_START, ""+TR_GREEN, 2 )
+    AddBlock( 6, 0, TILE_FINISH, ""+TR_GREEN, 8 )
+    
+    RAILS( 1, 0, RAIL_TOP ) = TR_HORIZONTAL
+    RAILS( 2, 0, RAIL_TOP ) = TR_HORIZONTAL
+    RAILS( 3, 0, RAIL_TOP ) = TR_HORIZONTAL
+    RAILS( 4, 0, RAIL_TOP ) = TR_HORIZONTAL
+    RAILS( 5, 0, RAIL_TOP ) = TR_HORIZONTAL
+EndFunction 
+
+//================================================================================
+// Junien asentaminen paikoilleen.
+//================================================================================
+Function PlaceTrains()
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\blockType = TILE_START Then
+            // Asetetaan uusi juna samoihin koordinaatteihin kuin alkupalanen,
+            // ja k‰‰nnet‰‰n se osoittamaan alkupalasen suuntaa.
+            newTrain.TRAINS = New(TRAINS)
+            newTrain\trainColor = Int( GetWord( sb\blockColors, 1 ) )
+            newTrain\obj = CloneObject( TRAINOBJECTS( newTrain\trainColor ) )
+            
+            xPos = sb\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
+            yPos = sb\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
+            ScreenPositionObject newTrain\obj, xPos, yPos
+            
+            // Junan k‰‰nt‰minen
+            If sb\directions = 1 Then
+                // Ylˆs
+                RotateObject newTrain\obj, 90
+            ElseIf sb\directions = 2 Then
+                // Oikealle
+                RotateObject newTrain\obj, 0
+            ElseIf sb\directions = 4 Then
+                // Alas
+                RotateObject newTrain\obj, 270
+            ElseIf sb\directions = 8 Then
+                // Vasemmalle
+                RotateObject newTrain\obj, 180
+            EndIf
+        EndIf
+    Next sb
 EndFunction 
