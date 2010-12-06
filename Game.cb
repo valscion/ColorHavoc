@@ -4,7 +4,9 @@
 // Varsinaisen pelin mekaniikka
 //********************************************************************************
 
-
+// Vakio, joka kertoo kuinka paljon suurempi nopeus t‰ytyy junilla olla kaarteissa,
+// jotta ne pysyisiv‰t suoralla menevien per‰ss‰. Arvo: PII / 2
+Const HALF_PI# = 1.5707963267948966192313216916398
 
 //================================================================================
 // Pelin p‰‰silmukka
@@ -14,16 +16,35 @@ Function StartGame()
     // Alustetaan kartta.
     InitializeGameMap()
     
+    // Alustetaan raiteet
+    InitializeTracks()
+    
     // Muuttuja, joka sis‰lt‰‰ tiedon saako raiteita muokkailla, eli onko junien
     // liikutus k‰ynniss‰.
     allowEditing = True
     
+    // Junien liikkeiden nopeuden kerroin
+    speedFactor# = 0.1
+    
+    // Kuinka paljon ollaan liikutu yhden ruudun aikana.
+    // Kun t‰t‰ muuttujaa verrataan TILESIZE-vakioon, saadaan
+    // tieto, milloin kaikkien junien tulisi olla mennyt yhden
+    // laatan verran eteenp‰in. T‰m‰ muuttuja pit‰‰ nollata
+    // aina kun junat ovat kulkeneet yhden ruudun verran.
+    movedInTile# = 0.0
+    
+    // FPS-riippumaton liike
+    oldTime = Timer()
+    passedTime = 0
     Repeat
         // Piirret‰‰n taustakuva pelialueelle
         DrawImage GUIIMAGES( GUI_GAMEAREA ), BORDERSIZE, BORDERSIZE
         
         If allowEditing Then
             ClsColor 64,0,0
+            
+            // Laitetaan kartta alkukuoseihinsa.
+            InitializeGameMap()
             
             // Muokataan hiirell‰ raiteita.
             EditGameMap()
@@ -55,6 +76,9 @@ Function StartGame()
                 Next y
             Next x
             
+            // Nollataan junien liikkeen muuttujat (kts. kommentit niiden kohdalta).
+            movement# = 0.0
+            movedInTile# = 0.0
         Else
             ClsColor 0,0,0
             
@@ -64,6 +88,34 @@ Function StartGame()
                     DrawTrack( x, y )
                 Next y
             Next x
+            
+            // Junien siirt‰misen suuruuden m‰‰r‰‰v‰ muuttuja.
+            movement# = speedFactor# * passedTime
+            
+            // Kuinka paljon ollaan liikutu yhden ruudun aikana.
+            // Kun t‰t‰ muuttujaa verrataan TILESIZE-vakioon, saadaan
+            // tieto, milloin kaikkien junien tulisi olla mennyt yhden
+            // laatan verran eteenp‰in. T‰m‰ muuttuja pit‰‰ nollata
+            // aina kun junat ovat kulkeneet yhden ruudun verran.
+            movedInTile# = movedInTile# + movement#
+            
+            // Tarkistetaan, ollanako siirrytty yhden laatan verran.
+            If movedInTile# >= TILESIZE Then
+                movedInTile# = 0.0
+                
+                // Asetetaan jokainen juna oikealle paikalle.
+                For tr.TRAINS = Each TRAINS
+                    // asd.
+                Next tr
+                
+                // Lis‰t‰‰n uusia junia liikenteeseen, jos niit‰ on olemassa.
+                PlaceTrains()
+            Else
+                // Muulloin siirret‰‰n junia normaalisti.
+                For tr.TRAINS = Each TRAINS
+                    MoveObject tr\obj, movement#
+                Next tr
+            EndIf
         EndIf
         
         // Enter-n‰pp‰imell‰ laitetaan junat liikkeelle / poistetaan junat.
@@ -84,11 +136,19 @@ Function StartGame()
         EndIf
         
         // Piirret‰‰n objektit (junat) raiteiden j‰lkeen ja ennen kartan palasia.
-        'DrawGame
+        DrawGame
         
         // Piirret‰‰n kartan palaset.
         DrawBlocks()
         
+        SetFont FONTS( FNT_DEFAULT )
+        Color cbWhite
+        Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileType2( MouseX(), MouseY() )
+        Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Track under mouse: " + TrackType2( MouseX(), MouseY() )
+        
+        // FPS-riippumaton liike
+        passedTime = Timer() - oldTime
+        oldTime = Timer()
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
     
@@ -232,7 +292,17 @@ EndFunction
 // Kartan alustus
 //================================================================================
 Function InitializeGameMap()
-    // Tyhjennet‰‰n kartta
+    // Rakennetaan testikartta
+    // AddBlock( _tileX, _tileY, _type, _color$, _directions, _img=0, _ptr=0 )
+    AddBlock( 0, 0, TILE_START, ""+TR_GREEN+" "+TR_GREEN+" "+TR_PURPLE+" "+TR_BLUE+" "+TR_YELLOW, 2 )
+    AddBlock( 6, 0, TILE_FINISH, ""+TR_GREEN, 8 )
+EndFunction 
+
+//================================================================================
+// Raiteiden alustus
+//================================================================================
+Function InitializeTracks()
+    // Asetetaan kaikki raiteet tyhjiksi.
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
             RAILS(x,y,RAIL_TOP) = TR_EMPTY
@@ -240,35 +310,43 @@ Function InitializeGameMap()
         Next y
     Next x
     
-    // Rakennetaan testikartta
-    // AddBlock( _tileX, _tileY, _type, _color$, _directions, _img=0, _ptr=0 )
-    AddBlock( 0, 0, TILE_START, ""+TR_GREEN, 2 )
-    AddBlock( 6, 0, TILE_FINISH, ""+TR_GREEN, 8 )
-    
-    RAILS( 1, 0, RAIL_TOP ) = TR_HORIZONTAL
-    RAILS( 2, 0, RAIL_TOP ) = TR_HORIZONTAL
-    RAILS( 3, 0, RAIL_TOP ) = TR_HORIZONTAL
-    RAILS( 4, 0, RAIL_TOP ) = TR_HORIZONTAL
-    RAILS( 5, 0, RAIL_TOP ) = TR_HORIZONTAL
-EndFunction 
+    For i=1 To 5
+        RAILS( i, 0, RAIL_TOP ) = TR_HORIZONTAL
+    Next i
+EndFunction
 
 //================================================================================
-// Junien asentaminen paikoilleen.
+// Junien asentaminen paikoilleen. Asettaa aina ensimm‰isen v‰rin kohdalle
+// junan, ja poistaa sitten alkupalasen tiedoista kyseisen v‰rin. N‰in saadaan
+// aikaiseksi se, ett‰ kun t‰t‰ funktiota kutsutaan aina kun junat ovat kulkeneet
+// yhden tilen verran eteenp‰in, laitetaan uusi juna maailmaan.
 //================================================================================
 Function PlaceTrains()
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
-        If sb\blockType = TILE_START Then
+        If sb\blockType = TILE_START And CountWords( sb\blockColors ) > 0 Then
             // Asetetaan uusi juna samoihin koordinaatteihin kuin alkupalanen,
             // ja k‰‰nnet‰‰n se osoittamaan alkupalasen suuntaa.
             newTrain.TRAINS = New(TRAINS)
+            
+            // Uuden junan v‰ri on sama kuin palasen ensimm‰inen v‰ri
             newTrain\trainColor = Int( GetWord( sb\blockColors, 1 ) )
+            
+            // Poistetaan palasen tiedoista juuri lis‰tty v‰ri.
+            sb\blockColors = Right( sb\blockColors, Len( sb\blockColors ) - Len( GetWord( sb\blockColors, 1 ) ) )
+            sb\blockColors = Trim( sb\blockColors )
+            
+            // Piirret‰‰n palaselle uusi kuva, koska sielt‰ on nyt poistunut yksi juna.
+            sb\img = AssembleBlock( sb\blockType, sb\blockColors, sb\directions )
+            
+            // Luodaan uusi objekti maailmaan.
             newTrain\obj = CloneObject( TRAINOBJECTS( newTrain\trainColor ) )
             
+            // Asetetaan se keskelle alkupalasta.
             xPos = sb\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
             yPos = sb\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
             ScreenPositionObject newTrain\obj, xPos, yPos
             
-            // Junan k‰‰nt‰minen
+            // K‰‰nnet‰‰n juna alkupalasen m‰‰r‰‰m‰‰n suuntaan.
             If sb\directions = 1 Then
                 // Ylˆs
                 RotateObject newTrain\obj, 90
@@ -281,6 +359,11 @@ Function PlaceTrains()
             ElseIf sb\directions = 8 Then
                 // Vasemmalle
                 RotateObject newTrain\obj, 180
+            Else
+                // Palasen suunta ei ollut yksiselitteinen. Poistetaan
+                // juna maailmasta.
+                DeleteObject newTrain\obj
+                Delete newTrain
             EndIf
         EndIf
     Next sb
