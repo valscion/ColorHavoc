@@ -57,13 +57,8 @@ RAILIMGS(TR_VERTICAL,1)    = LoadImage("media/secondaries/vertical.png")
 RAILIMGS(TR_XCROSS,1)      = RAILIMGS(TR_XCROSS,0) // Sama kuva p‰‰ll‰ ja alla
 
 //================================================================================
-// Junien lataus muistiin ja junien kokoelman m‰‰rittely.
+// Junien lataus muistiin.
 //================================================================================
-
-Type TRAINS
-    Field obj         // Junan objekti
-    Field trainColor  // V‰ri
-EndType
 
 // Junakuvien m‰‰r‰
 Const TRAINOBJECTS_AMOUNT = 7

@@ -31,6 +31,7 @@ Type SPECIALBLOCKS
     Field blockType             // Palasen tyyppi
     Field directions            // Suunnat bitmaskina, 1:ylös, 2:oikea, 4:alas, 8:vasen
     Field blockColors As String // Palasen väri, kts. Media.cb ja yleiset värien vakiot. Eroteltu välilyönnein toisistaan.
+    Field gameColors As String  // Pelissä oleva nykyinen väri.
     Field img                   // Kasattu kuva
 EndType
 
@@ -169,8 +170,23 @@ EndFunction
 // Toisena parametrina (_colors$) annetaan laatan osien värit välilyonnein
 // eroteltuna merkkijonona.
 //===============================================================================
-Function AssembleBlock( _type, _colors$, _directions )
+Function AssembleBlock( _type, _colors$, _directions, _originalColors$ = "" )
     img = MakeImage( TILESIZE, TILESIZE )
+    
+    // Jos _originalColors$ -parametri sisältää jotain tietoa, asetetaan eri
+    // värien koko manuaalisesti eriksi.
+    If _originalColors$ <> "" Then
+        tmp = CountWords( _originalColors$ )
+        If tmp = 1 Then 
+            sizeOverride = EI_SIZE_1x1
+        ElseIf tmp <= 4 Then
+            sizeOverride = EI_SIZE_2x2
+        Else
+            sizeOverride = EI_SIZE_3x3
+        EndIf
+    Else
+        sizeOverride = -1
+    EndIf
     
     // Lasketaan valmiiksi koordinaatit ulos- ja sisäännuolille
     centerX = (ImageWidth(BLOCKIMAGES( BLI_BORDERS ))-ImageWidth(BLOCKIMAGES( BLI_EXIT_UP )))/2
@@ -214,11 +230,11 @@ Function AssembleBlock( _type, _colors$, _directions )
         CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
         
         // Lisätään oikeanväriset symbolit kuvaan
-        If amount = 1 Then
+        If sizeOverride = -1 And amount = 1 Or sizeOverride = EI_SIZE_1x1 Then
             srcImg = ENDIMAGES( Int( _colors$ ), EI_SIZE_1x1, EI_STARTIMG )
             CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 6, 6, Image(srcImg), Image(img)
         EndIf
-        If amount > 1 And amount <= 4 Then
+        If sizeOverride = -1 And ( amount > 1 And amount <= 4 ) Or sizeOverride = EI_SIZE_2x2 Then
             For i=0 To amount-1
                 srcImg = ENDIMAGES( Int( GetWord( _colors$, i+1 ) ), EI_SIZE_2x2, EI_STARTIMG )
                 xPos = 6+(i Mod 2)*28
@@ -226,7 +242,7 @@ Function AssembleBlock( _type, _colors$, _directions )
                 CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
             Next i
         EndIf
-        If amount > 4 And amount <= 9 Then
+        If sizeOverride = -1 And ( amount > 4 And amount <= 9 ) Or sizeOverride = EI_SIZE_3x3 Then
             For i=0 To amount-1
                 srcImg = ENDIMAGES( Int( GetWord( _colors$, i+1 ) ), EI_SIZE_3x3, EI_STARTIMG )
                 xPos = 6+(i Mod 3)*18
@@ -249,10 +265,11 @@ Function AssembleBlock( _type, _colors$, _directions )
         CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 0, 0, Image(srcImg), Image(img)
         
         // Lisätään oikeanväriset symbolit kuvaan
-        If amount = 1 Then
+        If sizeOverride = -1 And amount = 1 Or sizeOverride = EI_SIZE_1x1 Then
             srcImg = ENDIMAGES( Int( _colors$ ), EI_SIZE_1x1, EI_ENDIMG )
             CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), 6, 6, Image(srcImg), Image(img)
-        ElseIf amount <= 4 Then
+        EndIf
+        If sizeOverride = -1 And ( amount > 1 And amount <= 4 ) Or sizeOverride = EI_SIZE_2x2 Then
             For i=0 To amount-1
                 srcImg = ENDIMAGES( Int( GetWord( _colors$, i+1 ) ), EI_SIZE_2x2, EI_ENDIMG )
                 xPos = 6+(i Mod 2)*28
@@ -260,7 +277,7 @@ Function AssembleBlock( _type, _colors$, _directions )
                 CopyBox 0, 0, ImageWidth(srcImg), ImageHeight(srcImg), xPos, yPos, Image(srcImg), Image(img)
             Next i
         EndIf
-        If amount>4 And amount <= 9 Then
+        If sizeOverride = -1 And ( amount > 4 And amount <= 9 ) Or sizeOverride = EI_SIZE_3x3 Then
             For i=0 To amount-1
                 srcImg = ENDIMAGES( Int( GetWord( _colors$, i+1 ) ), EI_SIZE_3x3, EI_ENDIMG )
                 xPos = 6+(i Mod 3)*18

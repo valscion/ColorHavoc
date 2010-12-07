@@ -68,6 +68,16 @@ Function MouseOver(x,y,w,h)'x ja y akseli, w leveys, h pituus.
     Return (MouseX() > x And MouseY() > y And Mousex() < x + w And Mousey() < y + h)
 EndFunction 
 
+//===============================================================================
+// Objektien koordinaatit ruudulla
+//===============================================================================
+Function ObjectSX(obj)
+    Return ObjectX(obj)+ScreenWidth()/2
+EndFunction
+
+Function ObjectSY(obj)
+    Return -ObjectY(obj)+ScreenHeight()/2
+EndFunction
 
 //===============================================================================
 // Luo CB:n omaa Input()-funktiota muistuttavan syötteen. Tekstissä voi liikkua 

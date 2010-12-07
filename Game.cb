@@ -4,9 +4,18 @@
 // Varsinaisen pelin mekaniikka
 //********************************************************************************
 
+// Kokoelma junia varten.
+Type TRAINS
+    Field obj         // Junan objekti
+    Field trainColor  // Väri
+EndType
+
 // Vakio, joka kertoo kuinka paljon suurempi nopeus täytyy junilla olla kaarteissa,
 // jotta ne pysyisivät suoralla menevien perässä. Arvo: PII / 2
 Const HALF_PI# = 1.5707963267948966192313216916398
+
+// Taulukko, joka sisältää etukäteen ladatut kuvat alkupalikoiden kaikista vaiheista.
+Dim GAME_PRELOADEDSTARTS( MAPSIZE-1, MAPSIZE-1, 9 )
 
 //================================================================================
 // Pelin pääsilmukka
@@ -14,7 +23,7 @@ Const HALF_PI# = 1.5707963267948966192313216916398
 Function StartGame()
 
     // Alustetaan kartta.
-    InitializeGameMap()
+    InitializeMap()
     
     // Alustetaan raiteet
     InitializeTracks()
@@ -22,6 +31,9 @@ Function StartGame()
     // Muuttuja, joka sisältää tiedon saako raiteita muokkailla, eli onko junien
     // liikutus käynnissä.
     allowEditing = True
+    
+    // Vaihdetaanko muokkausmoodiin/liikutusmoodiin.
+    changeMode = False
     
     // Junien liikkeiden nopeuden kerroin
     speedFactor# = 0.1
@@ -43,11 +55,8 @@ Function StartGame()
         If allowEditing Then
             ClsColor 64,0,0
             
-            // Laitetaan kartta alkukuoseihinsa.
-            InitializeGameMap()
-            
             // Muokataan hiirellä raiteita.
-            EditGameMap()
+            GameEditMap()
             
             // Piirretään raiteet ruudulle ja tarkistetan samalla hiiren
             // klikkaukset (alla oleva raide päälle ja raiteiden poisto).
@@ -103,9 +112,20 @@ Function StartGame()
             If movedInTile# >= TILESIZE Then
                 movedInTile# = 0.0
                 
-                // Asetetaan jokainen juna oikealle paikalle.
+                
                 For tr.TRAINS = Each TRAINS
-                    // asd.
+                    // Tarkistetaan törmäykset loppupalaseen.
+                    check = CheckFinishTile( tr\obj, tr\trainColor )
+                    If check = False Then
+                        // Oho, törmättiin, virheilmoitus ja takaisin muokkausmoodiin.
+                        DrawOverlayInfo( "You failed!", "Game over" )
+                        changeMode = True
+                        ClearKeys()
+                    ElseIf check = True Then
+                        // Juna pääsi maaliin, poistetaan se pelistä.
+                        DeleteObject tr\obj
+                        Delete tr
+                    EndIf
                 Next tr
                 
                 // Lisätään uusia junia liikenteeseen, jos niitä on olemassa.
@@ -119,7 +139,9 @@ Function StartGame()
         EndIf
         
         // Enter-näppäimellä laitetaan junat liikkeelle / poistetaan junat.
-        If KeyHit( cbKeyReturn ) Then
+        If KeyHit( cbKeyReturn ) Or changeMode Then
+            changeMode = False
+            
             // Vaihdetaan muokkauksen salliminen.
             allowEditing = Not allowEditing
             
@@ -129,6 +151,9 @@ Function StartGame()
                     DeleteObject tr\obj
                     Delete tr
                 Next tr
+                
+                // Laitetaan kartta alkukuoseihinsa.
+                GameResetBlocks()
             Else
                 // Muulloin asetetaan junat paikoilleen alkupisteisiinsä.
                 PlaceTrains()
@@ -152,6 +177,12 @@ Function StartGame()
         DrawScreen
     Until EscapeKey() Or KeyHit(cbKeyQ)
     
+    // Poistetaan junat kummittelemasta
+    For tr.TRAINS = Each TRAINS
+        DeleteObject tr\obj
+        Delete tr
+    Next tr
+    
     Return True
     
 EndFunction
@@ -159,7 +190,7 @@ EndFunction
 //================================================================================
 // Raiteiden piirto karttaan.
 //================================================================================
-Function EditGameMap()
+Function GameEditMap()
     // Tarkistetaan hiirellä piirto
     blockType = checkRailDraws()
     
@@ -291,11 +322,26 @@ EndFunction
 //================================================================================
 // Kartan alustus
 //================================================================================
-Function InitializeGameMap()
+Function InitializeMap()
+    // Tyhjennetään kaikki muistissa olevat palaset
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\img <> 0 Then DeleteImage sb\img
+        Delete sb
+    Next sb
+    
+    // Alustetaan kaikki etukäteen ladatut kuvat tyhjiksi.
+    For x=0 To MAPSIZE-1
+        For y=0 To MAPSIZE-1
+            For i=0 To 9
+                GAME_PRELOADEDSTARTS( x, y, i ) = 0
+            Next i
+        Next y
+    Next x
+    
     // Rakennetaan testikartta
-    // AddBlock( _tileX, _tileY, _type, _color$, _directions, _img=0, _ptr=0 )
-    AddBlock( 0, 0, TILE_START, ""+TR_GREEN+" "+TR_GREEN+" "+TR_PURPLE+" "+TR_BLUE+" "+TR_YELLOW, 2 )
-    AddBlock( 6, 0, TILE_FINISH, ""+TR_GREEN, 8 )
+    // GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
+    GameAddBlock( 0, 0, TILE_START, "0 1 2 3 4 5", 2 )
+    GameAddBlock( 6, 0, TILE_FINISH, "5 1 0 3 4 2", 8 )
 EndFunction 
 
 //================================================================================
@@ -309,10 +355,51 @@ Function InitializeTracks()
             RAILS(x,y,RAIL_UNDER) = TR_EMPTY
         Next y
     Next x
+EndFunction
+
+//================================================================================
+// Lisää palasen pelimaailmaan.
+//================================================================================
+Function GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
+    newSB.SPECIALBLOCKS = New( SPECIALBLOCKS )
+    newSB\tileX = _tileX
+    newSB\tileY = _tileY
+    newSB\blockType = _type
+    newSB\blockColors = _colors$
+    newSB\gameColors = newSB\blockColors
+    newSB\directions = _directions
     
-    For i=1 To 5
-        RAILS( i, 0, RAIL_TOP ) = TR_HORIZONTAL
-    Next i
+    // Ladataan etukäteen kaikki tulevat kuvat tälle palaselle.
+    If newSB\blockType = TILE_START Then 
+        colors$ = "pois " + newSB\gameColors
+        While CountWords( colors$ ) > 0
+            colors$ = Trim( Right( colors$, Len( colors$ ) - Len( GetWord( colors$, 1 ) ) ) )
+            
+            If GAME_PRELOADEDSTARTS( newSB\tileX, newSB\tileY, Int( CountWords( colors$ ) ) ) = 0 Then
+                GAME_PRELOADEDSTARTS( newSB\tileX, newSB\tileY, Int( CountWords( colors$ ) ) ) = AssembleBlock( newSB\blockType, colors$, newSB\directions, newSB\blockColors )
+            EndIf
+        Wend
+        
+        // Asetetaan ensimmäinen kuva tälle palaselle
+        newSB\img = GAME_PRELOADEDSTARTS( newSB\tileX, newSB\tileY, Int( CountWords( newSB\gameColors ) ) )
+    EndIf
+    
+EndFunction
+
+//================================================================================
+// Resetoi kaikki pelimaailman palaset alkutilaansa.
+//================================================================================
+Function GameResetBlocks( )
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\blockType = TILE_START Then 
+            sb\gameColors = sb\blockColors
+            sb\img = GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( sb\gameColors ) ) )
+            
+        ElseIf sb\blockType = TILE_FINISH Then
+            sb\gameColors = sb\blockColors
+            sb\img = AssembleBlock( sb\blockType, sb\blockColors, sb\directions )
+        EndIf
+    Next sb
 EndFunction
 
 //================================================================================
@@ -323,20 +410,20 @@ EndFunction
 //================================================================================
 Function PlaceTrains()
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
-        If sb\blockType = TILE_START And CountWords( sb\blockColors ) > 0 Then
+        If sb\blockType = TILE_START And CountWords( sb\gameColors ) > 0 Then
             // Asetetaan uusi juna samoihin koordinaatteihin kuin alkupalanen,
             // ja käännetään se osoittamaan alkupalasen suuntaa.
             newTrain.TRAINS = New(TRAINS)
             
             // Uuden junan väri on sama kuin palasen ensimmäinen väri
-            newTrain\trainColor = Int( GetWord( sb\blockColors, 1 ) )
+            newTrain\trainColor = Int( GetWord( sb\gameColors, 1 ) )
             
             // Poistetaan palasen tiedoista juuri lisätty väri.
-            sb\blockColors = Right( sb\blockColors, Len( sb\blockColors ) - Len( GetWord( sb\blockColors, 1 ) ) )
-            sb\blockColors = Trim( sb\blockColors )
+            sb\gameColors = Right( sb\gameColors, Len( sb\gameColors ) - Len( GetWord( sb\gameColors, 1 ) ) )
+            sb\gameColors = Trim( sb\gameColors )
             
-            // Piirretään palaselle uusi kuva, koska sieltä on nyt poistunut yksi juna.
-            sb\img = AssembleBlock( sb\blockType, sb\blockColors, sb\directions )
+            // Asetetaan palaselle uusi kuva, koska sieltä on nyt poistunut yksi juna.
+            sb\img = GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( sb\gameColors ) ) )
             
             // Luodaan uusi objekti maailmaan.
             newTrain\obj = CloneObject( TRAINOBJECTS( newTrain\trainColor ) )
@@ -367,4 +454,51 @@ Function PlaceTrains()
             EndIf
         EndIf
     Next sb
+EndFunction 
+
+//================================================================================
+// Tarkistaa, tuliko oikeanvärinen juna perille loppupalaseen, ja jos tuli, niin
+// vähennetään loppupalasesta kyseinen väri pois. Funktiolle annettavat 
+// koordinaatit ovat ruutukoordinaatteja. Funktion eri palautusarvot ovat:
+//    1: juna pääsi maaliin onnistuneesti
+//    0: juna törmäsi (väärän värinen tai maali oli jo täynnä)
+//   -1: juna ei ollut maalin päällä
+//================================================================================
+Function CheckFinishTile( _trainObj, _trainColor )
+    x = ObjectSX( _trainObj )
+    y = ObjectSY( _trainObj )
+    
+    tileX = Min( Max( ( x - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+    tileY = Min( Max( ( y - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+    
+    position = -1
+    
+    For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If sb\tileX = tileX And sb\tileY = tileY And sb\blockType = TILE_FINISH Then
+            // Ollaan loppupalasen päällä. Tarkistetaan värit.
+            For i=1 To CountWords( sb\gameColors )
+                position = position + Len( GetWord( sb\gameColors, i ) ) + 1
+                If _trainColor = GetWord( sb\gameColors, i ) Then
+                    // Maalissa oli oikean värinen palanen. Poistetaan se palasesta.
+                    colorsBefore$ = Trim( Left( sb\gameColors, position - Len( GetWord( sb\gameColors, 1 ) ) ) )
+                    colorsAfter$ = Trim( Mid( sb\gameColors, position + Len( GetWord( sb\gameColors, 1 ) ) ) )
+                    
+                    sb\gameColors = colorsBefore$ + " " + colorsAfter$
+                    
+                    // Asetetaan loppupalaselle uusi kuva.
+                    If sb\img <> 0 Then DeleteImage sb\img
+                    sb\img = AssembleBlock( TILE_FINISH, sb\gameColors, sb\directions, sb\blockColors )
+                    
+                    // Palautetaan onnistunut maaliin saapuminen.
+                    Return 1
+                EndIf
+            Next i
+            
+            // Kaikki värit käytiin läpi, mutta oikeaa ei löytynyt. Törmätään.
+            Return 0
+        EndIf
+    Next sb
+    
+    // Käytiin koko kokoelma läpi, eikä palasta löytynyt objektin koordinaateista.
+    Return -1
 EndFunction 

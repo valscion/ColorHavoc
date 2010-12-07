@@ -105,6 +105,7 @@ EndFunction
 // otsikko. Tekstiss‰ pipe-merkki "|" tarkoittaa rivinvaihtoa.
 //================================================================================
 Const INFO_DURATION = 70 // 0.07 sekuntia per kirjain
+Const INFO_MINDURATION = 1500 // V‰hint‰‰n 1.5 sekuntia per viesti
 Function DrawOverlayInfo( _txt$, _title$ = "Info", _bottomY=-1 )
     
     SetFont FONTS( FNT_OVERLAYMENU )
@@ -147,7 +148,7 @@ Function DrawOverlayInfo( _txt$, _title$ = "Info", _bottomY=-1 )
     ClearMouse()
     ClearKeys()
     
-    loopDuration = Timer() + INFO_DURATION * Len( _txt )
+    loopDuration = Timer() + Max( INFO_MINDURATION, INFO_DURATION * Len( _txt ) )
     Repeat
         DrawImage bgImg, 0, 0
     
