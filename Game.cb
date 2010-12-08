@@ -333,6 +333,9 @@ Function InitializeMap()
     For x=0 To MAPSIZE-1
         For y=0 To MAPSIZE-1
             For i=0 To 9
+                If GAME_PRELOADEDSTARTS( x, y, i ) <> 0 Then
+                    DeleteImage GAME_PRELOADEDSTARTS( x, y, i )
+                EndIf
                 GAME_PRELOADEDSTARTS( x, y, i ) = 0
             Next i
         Next y
