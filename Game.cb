@@ -10,9 +10,10 @@ Type TRAINS
     Field trainColor  // V‰ri
 EndType
 
-// Vakio, joka kertoo kuinka paljon suurempi nopeus t‰ytyy junilla olla kaarteissa,
-// jotta ne pysyisiv‰t suoralla menevien per‰ss‰. Arvo: PII / 2
-Const HALF_PI# = 1.5707963267948966192313216916398
+// Vakio, joka kertoo kuinka paljon moninkertainen nopeuden t‰ytyy junilla olla 
+// kaarteissa, jotta nemenisiv‰t suoralla menevien kanssa samssa tahdissa. 
+// Arvo: PII / 4
+Const CURVE_SPEED# = 0.78539816339744830961566084581988
 
 // Taulukko, joka sis‰lt‰‰ etuk‰teen ladatut kuvat alkupalikoiden kaikista vaiheista.
 Dim GAME_PRELOADEDSTARTS( MAPSIZE-1, MAPSIZE-1, 9 )
@@ -110,10 +111,16 @@ Function StartGame()
             
             // Tarkistetaan, ollanako siirrytty yhden laatan verran.
             If movedInTile# >= TILESIZE Then
-                movedInTile# = 0.0
-                
-                
                 For tr.TRAINS = Each TRAINS
+                    // Asetetaan juna keskelle palasta, miss‰ sen pit‰isikin olla.
+                    tileX = Min( Max( ( ObjectSX( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+                    tileY = Min( Max( ( ObjectSY( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+                    
+                    xPos# = tileX * TILESIZE + BORDERSIZE + TILESIZE/2
+                    yPos# = tileY * TILESIZE + BORDERSIZE + TILESIZE/2
+                    
+                    ScreenPositionObject tr\obj, xPos, yPos
+                    
                     // Tarkistetaan tˆrm‰ykset loppupalaseen.
                     check = CheckFinishTile( tr\obj, tr\trainColor )
                     If check = False Then
@@ -125,13 +132,31 @@ Function StartGame()
                         // Juna p‰‰si maaliin, poistetaan se pelist‰.
                         DeleteObject tr\obj
                         Delete tr
+                    Else
+                        // Muuten liikutetaan normaalisti.
+                        MoveObject tr\obj, movement#
+                        movedInTile# = movement#
                     EndIf
                 Next tr
                 
                 // Lis‰t‰‰n uusia junia liikenteeseen, jos niit‰ on olemassa.
                 PlaceTrains()
-            Else
+                
+                // Nollataan bordersChecked-muuttuja.
+                bordersChecked = False
+            ElseIf movedInTile# >= TILESIZE/2 And bordersChecked = False Then
+                // Jos ollaan kuljettu puoli palasta, eli ollaan juuri menty palasten reunojen yli.
+                bordersChecked = True
+                
+                If DEBUG Then
+                    AddText "Trains hit the borders."
+                EndIf
                 // Muulloin siirret‰‰n junia normaalisti.
+                For tr.TRAINS = Each TRAINS
+                    MoveObject tr\obj, movement#
+                Next tr
+            Else
+                // Normaali liikkuminen
                 For tr.TRAINS = Each TRAINS
                     MoveObject tr\obj, movement#
                 Next tr
@@ -154,9 +179,15 @@ Function StartGame()
                 
                 // Laitetaan kartta alkukuoseihinsa.
                 GameResetBlocks()
+                
+                // Tyhjennet‰n AddTextill‰ luodut debug-tekstit
+                If DEBUG Then ClearText
             Else
                 // Muulloin asetetaan junat paikoilleen alkupisteisiins‰.
                 PlaceTrains()
+                
+                // Asetetaan AddTextit oikeaan kohtaan.
+                If DEBUG Then Locate BORDERSIZE, BORDERSIZE*2 + TILESIZE*MAPSIZE + 60
             EndIf
         EndIf
         
@@ -166,10 +197,12 @@ Function StartGame()
         // Piirret‰‰n kartan palaset.
         DrawBlocks()
         
-        SetFont FONTS( FNT_DEFAULT )
-        Color cbWhite
-        Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileType2( MouseX(), MouseY() )
-        Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Track under mouse: " + TrackType2( MouseX(), MouseY() )
+        If DEBUG Then
+            SetFont FONTS( FNT_DEFAULT )
+            Color cbWhite
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileType2( MouseX(), MouseY() )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Track under mouse: " + TrackType2( MouseX(), MouseY() )
+        EndIf
         
         // FPS-riippumaton liike
         passedTime = Timer() - oldTime
@@ -182,6 +215,8 @@ Function StartGame()
         DeleteObject tr\obj
         Delete tr
     Next tr
+    
+    If DEBUG Then ClearText
     
     Return True
     
