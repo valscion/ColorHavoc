@@ -226,35 +226,35 @@ EndFunction
 // Hieman monimutkainen funktio uuden raiteen selvittämiseksi. Uuden palasen
 // koordinaatit tallennetaan muuttujiin gEditedTileX ja gEditTileY.
 // Funktio tarvitsee avukseen useita globaaleia, koska se on vähän purkkainen.
-// gCNT-alkuiset globaalit ovat funktion sisäiseen käyttöön tarkoitetut.
+// gCRD-alkuiset globaalit ovat funktion sisäiseen käyttöön tarkoitetut.
 // Funktiota pitää kutsua joka loopin kierros.
 // -> Funktio palauttaa uuden palasen vakion arvon.
 //================================================================================
-Global gCNTtileX, gCNTtileY, gCNTstartTileX, gCNTstartTileY
-Global gCNTstartX, gCNTstartY, gCNTendX, gCNTendY
+Global gCRDtileX, gCRDtileY, gCRDstartTileX, gCRDstartTileY
+Global gCRDstartX, gCRDstartY, gCRDendX, gCRDendY
 Global gEditedTileX, gEditedTileY
 
 Function CheckRailDraws()
     
-    gCNTtileX = (MouseX()-BORDERSIZE)/64
-    gCNTtileY = (MouseY()-BORDERSIZE)/64
+    gCRDtileX = (MouseX()-BORDERSIZE)/64
+    gCRDtileY = (MouseY()-BORDERSIZE)/64
     
-    gCNTtileX = Min(Max(gCNTtileX,0),MAPSIZE-1)
-    gCNTtileY = Min(Max(gCNTtileY,0),MAPSIZE-1)
+    gCRDtileX = Min(Max(gCRDtileX,0),MAPSIZE-1)
+    gCRDtileY = Min(Max(gCRDtileY,0),MAPSIZE-1)
     
     If MouseDown(1)
-        If gCNTstartTileX=-1 Or gCNTstartTileY=-1 Then gCNTstartTileX=gCNTtileX : gCNTstartTileY=gCNTtileY
+        If gCRDstartTileX=-1 Or gCRDstartTileY=-1 Then gCRDstartTileX=gCRDtileX : gCRDstartTileY=gCRDtileY
         For x2=Max(Min(RoundDown(MouseX()/64)-1,10),0) To Max(Min(RoundDown(MouseX()/64)+1,10),0)
             For y2=Max(Min(RoundDown(MouseY()/64)-1,10),0) To Max(Min(RoundDown(MouseY()/64)+1,10),0)
                 For i=0 To 1
                     If GLUEPOINTS(x2,y2,i,0) >= BORDERSIZE And GLUEPOINTS(x2,y2,i,1) >= BORDERSIZE Then
                         If Distance(MouseX(),MouseY(),GLUEPOINTS(x2,y2,i,0),GLUEPOINTS(x2,y2,i,1))<TILESIZE/4 Then 
-                            If gCNTstartX=-1 Then
-                                gCNTstartX=GLUEPOINTS(x2,y2,i,0)
-                                gCNTstartY=GLUEPOINTS(x2,y2,i,1)
-                            ElseIf gCNTendX=-1 Or gCNTendX=gCNTstartX
-                                gCNTendX=GLUEPOINTS(x2,y2,i,0)
-                                gCNTendY=GLUEPOINTS(x2,y2,i,1)
+                            If gCRDstartX=-1 Then
+                                gCRDstartX=GLUEPOINTS(x2,y2,i,0)
+                                gCRDstartY=GLUEPOINTS(x2,y2,i,1)
+                            ElseIf gCRDendX=-1 Or gCRDendX=gCRDstartX
+                                gCRDendX=GLUEPOINTS(x2,y2,i,0)
+                                gCRDendY=GLUEPOINTS(x2,y2,i,1)
                             EndIf
                         EndIf
                     EndIf
@@ -262,20 +262,20 @@ Function CheckRailDraws()
             Next y2
         Next x2
         
-        If gCNTtileX<>gCNTstartTileX Or gCNTtileY<>gCNTstartTileY Then
-            gCNTstartX=-1 : gCNTstartY=-1 : gCNTendX=-1 : gCNTendY=-1 : gCNTstartTileX=-1 : gCNTstartTileY=-1
+        If gCRDtileX<>gCRDstartTileX Or gCRDtileY<>gCRDstartTileY Then
+            gCRDstartX=-1 : gCRDstartY=-1 : gCRDendX=-1 : gCRDendY=-1 : gCRDstartTileX=-1 : gCRDstartTileY=-1
         EndIf
         
-        If gCNTstartX<>-1 And gCNTendX<>-1 Then
+        If gCRDstartX<>-1 And gCRDendX<>-1 Then
             'Color cbYellow
-            'Line gCNTstartX,gCNTstartY,gCNTendX,gCNTendY
-            angle = GetAngle( gCNTstartX, gCNTstartY, gCNTendX, gCNTendY )
-            blockCheck = gCNTstartX - gCNTstartTileX*64 - BORDERSIZE
-            If ( gCNTstartX <> gCNTendX ) Or ( gCNTstartY <> gCNTendY ) Then
+            'Line gCRDstartX,gCRDstartY,gCRDendX,gCRDendY
+            angle = GetAngle( gCRDstartX, gCRDstartY, gCRDendX, gCRDendY )
+            blockCheck = gCRDstartX - gCRDstartTileX*64 - BORDERSIZE
+            If ( gCRDstartX <> gCRDendX ) Or ( gCRDstartY <> gCRDendY ) Then
                 block = TR_EMPTY
-                If gCNTstartX = gCNTendX Then
+                If gCRDstartX = gCRDendX Then
                     block = TR_VERTICAL
-                ElseIf gCNTstartY = gCNTendY Then
+                ElseIf gCRDstartY = gCRDendY Then
                     block = TR_HORIZONTAL
                 ElseIf angle=315 Then
                     If blockCheck=0 Then
@@ -306,12 +306,12 @@ Function CheckRailDraws()
         EndIf
         
     Else 
-        gCNTstartX=-1 : gCNTstartY=-1 : gCNTendX=-1 : gCNTendY=-1 : gCNTstartTileX=-1 : gCNTstartTileY=-1
+        gCRDstartX=-1 : gCRDstartY=-1 : gCRDendX=-1 : gCRDendY=-1 : gCRDstartTileX=-1 : gCRDstartTileY=-1
     EndIf
     
     If block<>TR_EMPTY Then
-        gEditedTileX = gCNTtileX
-        gEditedTileY = gCNTtileY
+        gEditedTileX = gCRDtileX
+        gEditedTileY = gCRDtileY
         Return block
     Else
         Return False
