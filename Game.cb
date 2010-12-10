@@ -8,7 +8,15 @@
 Type TRAINS
     Field obj         // Junan objekti
     Field trainColor  // V‰ri
+    Field turning     // Onko juna k‰‰ntym‰ss‰, ja jos on, niin mihin suuntaan.
 EndType
+
+// Vakiot junien suunnille
+Const TRAIN_NOTURN    = 0
+Const TRAIN_TURNUP    = 1
+Const TRAIN_TURNRIGHT = 2
+Const TRAIN_TURNDOWN  = 2
+Const TRAIN_TURNLEFT  = 2
 
 // Vakio, joka kertoo kuinka paljon moninkertainen nopeuden t‰ytyy junilla olla 
 // kaarteissa, jotta nemenisiv‰t suoralla menevien kanssa samssa tahdissa. 
@@ -18,6 +26,14 @@ Const CURVE_SPEED# = 0.78539816339744830961566084581988
 // Taulukko, joka sis‰lt‰‰ etuk‰teen ladatut kuvat alkupalikoiden kaikista vaiheista.
 Dim GAME_PRELOADEDSTARTS( MAPSIZE-1, MAPSIZE-1, 9 )
 
+// Globaali, joka sis‰lt‰‰ boolean-tiedon, vaihdetaanko muokkausmoodista pelimoodiin
+// tai toistep‰in.
+Global gGameChangeMode
+gChangeMode = False
+
+// Globaali, joka sis‰lt‰‰ tiedon, onko peli jo h‰vitty.
+Global gGameFailed
+gGameFailed = False
 //================================================================================
 // Pelin p‰‰silmukka
 //================================================================================
@@ -33,11 +49,8 @@ Function StartGame()
     // liikutus k‰ynniss‰.
     allowEditing = True
     
-    // Vaihdetaanko muokkausmoodiin/liikutusmoodiin.
-    changeMode = False
-    
     // Junien liikkeiden nopeuden kerroin
-    speedFactor# = 0.1
+    speedFactor# = 0.02
     
     // Kuinka paljon ollaan liikutu yhden ruudun aikana.
     // Kun t‰t‰ muuttujaa verrataan TILESIZE-vakioon, saadaan
@@ -125,9 +138,7 @@ Function StartGame()
                     check = CheckFinishTile( tr\obj, tr\trainColor )
                     If check = False Then
                         // Oho, tˆrm‰ttiin, virheilmoitus ja takaisin muokkausmoodiin.
-                        DrawOverlayInfo( "You failed!", "Game over" )
-                        changeMode = True
-                        ClearKeys()
+                        GameOver()
                     ElseIf check = True Then
                         // Juna p‰‰si maaliin, poistetaan se pelist‰.
                         DeleteObject tr\obj
@@ -159,13 +170,30 @@ Function StartGame()
                 // Normaali liikkuminen
                 For tr.TRAINS = Each TRAINS
                     MoveObject tr\obj, movement#
+                    
+                    overTile = TileType2( ObjectSX( tr\obj ), ObjectSY( tr\obj ) )
+                    If overTile <> TILE_START And overTile <> TILE_FINISH Then
+                        // Tarkista raiteiden suunta vain, jos ei olla alku/loppupalasen p‰‰ll‰.
+                        overTrack = TrackType2( ObjectSX( tr\obj ), ObjectSY( tr\obj ) )
+                        If overTrack = TR_EMPTY Then
+                            GameOver()
+                            Exit
+                        ElseIf overTrack = TR_HORIZONTAL And Max( Int( ObjectAngle( tr\obj ) ) Mod 180, 2 ) > 2 Then
+                            // Tultiin yli 2 astetta v‰‰r‰ss‰ kulmassa, eli tˆrm‰t‰‰n.
+                            GameOver()
+                            Exit
+                        ElseIf overTrack = TR_VERTICAL And ObjectAngle( tr\obj ) < 88.0 Or ObjectAngle( tr\obj ) > 272.0 Then
+                            GameOver()
+                            Exit
+                        EndIf
+                    EndIf
                 Next tr
             EndIf
         EndIf
         
         // Enter-n‰pp‰imell‰ laitetaan junat liikkeelle / poistetaan junat.
-        If KeyHit( cbKeyReturn ) Or changeMode Then
-            changeMode = False
+        If KeyHit( cbKeyReturn ) Or gGameChangeMode Then
+            gGameChangeMode = False
             
             // Vaihdetaan muokkauksen salliminen.
             allowEditing = Not allowEditing
@@ -204,6 +232,18 @@ Function StartGame()
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Track under mouse: " + TrackType2( MouseX(), MouseY() )
         EndIf
         
+        // Tarkistetaan pelin h‰vi‰minen.
+        If gGameFailed Then 
+            DrawOverlayInfo( "You failed!", "Game over" )
+            
+            // Asetetaan peli taas l‰p‰ist‰v‰ksi
+            gGameFailed = False
+            
+            // Tyhj‰t‰‰n n‰pp‰inpuskuri, ettei peli ala heti uudelleen jos 
+            // pelaaja painaa Enteri‰.
+            ClearKeys()
+        EndIf
+        
         // FPS-riippumaton liike
         passedTime = Timer() - oldTime
         oldTime = Timer()
@@ -231,8 +271,9 @@ Function GameEditMap()
     
     // Jos tapahtui muutos, niin poistetaan muokatun tilen toisarvoinen raide
     // ja asetetaan nykyinen raide toisarvoiseksi. Uusi raite ensiarvoiseksi.
-    // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva.
-    If blockType<>False Then
+    // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva, tai alla
+    // oleva palanen on tyhj‰ tahi raide.
+    If blockType <> False And ( TileType( gEditedTileX, gEditedTileY ) = TILE_TRACK Or TileType( gEditedTileX, gEditedTileY ) = TILE_EMPTY ) Then
         If blockType <> RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) Then
             // Ei muuteta palasia, jos edellinen palanen on jo x-risteys ja uusi palanen olisi suora.
             If Not ( ( blockType = TR_VERTICAL Or blockType = TR_HORIZONTAL ) And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS )
@@ -539,4 +580,12 @@ Function CheckFinishTile( _trainObj, _trainColor )
     
     // K‰ytiin koko kokoelma l‰pi, eik‰ palasta lˆytynyt objektin koordinaateista.
     Return -1
+EndFunction 
+
+//================================================================================
+// Failausilmoitus, kun tˆrm‰t‰‰n johonkin.
+//================================================================================
+Function GameOver()
+    gGameFailed = True
+    gGameChangeMode = True
 EndFunction 
