@@ -9,6 +9,8 @@ Type TRAINS
     Field obj         // Junan objekti
     Field trainColor  // V‰ri
     Field turning     // Onko juna k‰‰ntym‰ss‰, ja jos on, niin mihin suuntaan.
+    Field tileX       // Tilekoordinaatti, miss‰ ollaan.
+    Field tileY       // Kts. yl‰puolelta.
 EndType
 
 // Vakiot junien suunnille
@@ -155,16 +157,17 @@ Function StartGame()
                 
                 // Nollataan bordersChecked-muuttuja.
                 bordersChecked = False
-            ElseIf movedInTile# >= TILESIZE/2 And bordersChecked = False Then
+            ElseIf movedInTile# > TILESIZE/2 And bordersChecked = False Then
                 // Jos ollaan kuljettu puoli palasta, eli ollaan juuri menty palasten reunojen yli.
                 bordersChecked = True
                 
-                If DEBUG Then
-                    AddText "Trains hit the borders."
-                EndIf
                 // Muulloin siirret‰‰n junia normaalisti.
                 For tr.TRAINS = Each TRAINS
                     MoveObject tr\obj, movement#
+                    
+                    // Asetetaan junien tilekoordinaatit koskemaan uutta tile‰.
+                    tr\tileX = Min( Max( ( ObjectSX( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+                    tr\tileY = Min( Max( ( ObjectSY( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
                 Next tr
             Else
                 // Normaali liikkuminen
@@ -230,6 +233,15 @@ Function StartGame()
             Color cbWhite
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileType2( MouseX(), MouseY() )
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Track under mouse: " + TrackType2( MouseX(), MouseY() )
+            
+            // Junien tilekoordinaattien listaus
+            Color cbGreen
+            i=0
+            startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 50
+            For tr.TRAINS = Each TRAINS
+                Text BORDERSIZE+20, startY + 20*i, "Train "+i+": ( " + tr\tileX + ", " + tr\tileY + ")"
+                i = i + 1
+            Next tr
         EndIf
         
         // Tarkistetaan pelin h‰vi‰minen.
