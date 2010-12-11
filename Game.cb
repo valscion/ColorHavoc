@@ -128,16 +128,13 @@ Function StartGame()
             If movedInTile# >= TILESIZE Then
                 For tr.TRAINS = Each TRAINS
                     // Asetetaan juna keskelle palasta, missä sen pitäisikin olla.
-                    tileX = Min( Max( ( ObjectSX( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-                    tileY = Min( Max( ( ObjectSY( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-                    
-                    xPos# = tileX * TILESIZE + BORDERSIZE + TILESIZE/2
-                    yPos# = tileY * TILESIZE + BORDERSIZE + TILESIZE/2
+                    xPos# = tr\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
+                    yPos# = tr\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
                     
                     ScreenPositionObject tr\obj, xPos, yPos
                     
                     // Tarkistetaan törmäykset loppupalaseen.
-                    check = CheckFinishTile( tr\obj, tr\trainColor )
+                    check = CheckFinishTile( tr\tileX, tr\tileY, tr\trainColor )
                     If check = False Then
                         // Oho, törmättiin, virheilmoitus ja takaisin muokkausmoodiin.
                         GameOver()
@@ -174,10 +171,10 @@ Function StartGame()
                 For tr.TRAINS = Each TRAINS
                     MoveObject tr\obj, movement#
                     
-                    overTile = TileType2( ObjectSX( tr\obj ), ObjectSY( tr\obj ) )
+                    overTile = TileType( tr\tileX, tr\tileY )
                     If overTile <> TILE_START And overTile <> TILE_FINISH Then
                         // Tarkista raiteiden suunta vain, jos ei olla alku/loppupalasen päällä.
-                        overTrack = TrackType2( ObjectSX( tr\obj ), ObjectSY( tr\obj ) )
+                        overTrack = TrackType( tr\tileX, tr\tileY )
                         If overTrack = TR_EMPTY Then
                             GameOver()
                             Exit
@@ -519,6 +516,10 @@ Function PlaceTrains()
             // Luodaan uusi objekti maailmaan.
             newTrain\obj = CloneObject( TRAINOBJECTS( newTrain\trainColor ) )
             
+            // Asetetaan junan tilekoordinaatit samaksi kuin alkupalasen.
+            newTrain\tileX = sb\tileX
+            newTrain\tileY = sb\tileY
+            
             // Asetetaan se keskelle alkupalasta.
             xPos = sb\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
             yPos = sb\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
@@ -555,17 +556,12 @@ EndFunction
 //    0: juna törmäsi (väärän värinen tai maali oli jo täynnä)
 //   -1: juna ei ollut maalin päällä
 //================================================================================
-Function CheckFinishTile( _trainObj, _trainColor )
-    x = ObjectSX( _trainObj )
-    y = ObjectSY( _trainObj )
-    
-    tileX = Min( Max( ( x - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-    tileY = Min( Max( ( y - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-    
+Function CheckFinishTile( _tileX, _tileY, _trainColor )
+
     position = -1
     
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
-        If sb\tileX = tileX And sb\tileY = tileY And sb\blockType = TILE_FINISH Then
+        If sb\tileX = _tileX And sb\tileY = _tileY And sb\blockType = TILE_FINISH Then
             // Ollaan loppupalasen päällä. Tarkistetaan värit.
             For i=1 To CountWords( sb\gameColors )
                 position = position + Len( GetWord( sb\gameColors, i ) ) + 1

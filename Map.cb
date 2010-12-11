@@ -156,13 +156,10 @@ Function TileType2( _x, _y )
 EndFunction 
 
 //===============================================================================
-// Tarkista raiteen tyyppi ruutukoordinaattien mukaan.
+// Tarkista raiteen tyyppi tilekoordinaattien mukaan.
 //===============================================================================
-Function TrackType2( _x, _y )
-    tileX = Min( Max( ( _x - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-    tileY = Min( Max( ( _y - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-    
-    Return RAILS( tileX, tileY, RAIL_TOP )
+Function TrackType( _tileX, _tileY )
+    Return RAILS( _tileX, _tileY, RAIL_TOP )
 EndFunction
 
 //===============================================================================
