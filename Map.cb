@@ -13,6 +13,15 @@ Const TILE_PAINTER   = 4 'ei käytössä vielä
 Const TILE_DIVIDER   = 5 'ei käytössä vielä
 Const TILE_EMPTY     = 255
 
+// Raiteiden tyypit, käytetään myös RAILIMGS-taulukossa.
+Const TR_EMPTY       = 0
+Const TR_TOPLEFT     = 1
+Const TR_TOPRIGHT    = 2
+Const TR_BOTTOMRIGHT = 3
+Const TR_BOTTOMLEFT  = 4
+Const TR_HORIZONTAL  = 5
+Const TR_VERTICAL    = 6
+Const TR_XCROSS      = 7
 
 // Kolmiulotteinen taulukko raiteita varten. Ensimmäiset kaksi ulottuvuutta
 // määräävät palikoiden x- ja y-koordinaatit, kolmas ulottuvuus sisältää
@@ -156,10 +165,64 @@ Function TileType2( _x, _y )
 EndFunction 
 
 //===============================================================================
-// Tarkista raiteen tyyppi tilekoordinaattien mukaan.
+// Tarkista raiteen tyyppi ruutukoordinaattien mukaan. Jos vika parametri tosi,
+// palautetaan alempana olevan raiteen tyyppi.
 //===============================================================================
-Function TrackType( _tileX, _tileY )
-    Return RAILS( _tileX, _tileY, RAIL_TOP )
+Function TrackType2( _x, _y, _under=0 )
+    tileX = Min( Max( ( _x - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+    tileY = Min( Max( ( _y - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+    
+    If _under Then Return RAILS( tileX, tileY, RAIL_UNDER )
+    
+    Return RAILS( tileX, tileY, RAIL_TOP )
+EndFunction
+
+//===============================================================================
+// Palauttaa raiteen tyypin merkkijonona.
+//===============================================================================
+Function TrackTypeToStr$( _trackType )
+    If _trackType = TR_EMPTY Then
+        Return "No track"
+    ElseIf _trackType = TR_TOPLEFT Then
+        Return "Curve top-l"+"eft"
+    ElseIf _trackType = TR_TOPRIGHT Then
+        Return "Curve top-r"+"ight"
+    ElseIf _trackType = TR_BOTTOMRIGHT Then
+        Return "Curve bottom-r"+"ight"
+    ElseIf _trackType = TR_BOTTOMLEFT Then
+        Return "Curve bottom-l"+"eft"
+    ElseIf _trackType = TR_HORIZONTAL Then
+        Return "Horizontal"
+    ElseIf _trackType = TR_VERTICAL Then
+        Return "Vertical"
+    ElseIf _trackType = TR_XCROSS Then
+        Return "X-crossing"
+    Else
+        Return "Unknown track"
+    EndIf
+EndFunction
+
+//===============================================================================
+// Palauttaa laatan tyypin merkkijonona.
+//===============================================================================
+Function TileTypeToStr$( _tileType )
+    If _tileType = TILE_TRACK Then
+        Return "Track"
+    ElseIf _tileType = TILE_START Then
+        Return "Start"
+    ElseIf _tileType = TILE_FINISH Then
+        Return "Finish"
+    ElseIf _tileType = TILE_ROADBLOCK Then
+        Return "Roadblock"
+    'ElseIf _tileType = TILE_PAINTER Then
+    '    Return "Painter"
+    'ElseIf _tileType = TILE_DIVIDER Then
+    '    Return "Divider"
+    ElseIf _tileType = TILE_EMPTY Then
+        Return "No tile"
+    Else
+        Return "Unknown tile"
+    EndIf
 EndFunction
 
 //===============================================================================

@@ -228,8 +228,9 @@ Function StartGame()
         If DEBUG Then
             SetFont FONTS( FNT_DEFAULT )
             Color cbWhite
-            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileType2( MouseX(), MouseY() )
-            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Track under mouse: " + TrackType2( MouseX(), MouseY() )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileTypeToStr( TileType2( MouseX(), MouseY() ) )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Top-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY() ) )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 40, "Under-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY(), True ) )
             
             // Junien tilekoordinaattien listaus
             Color cbGreen
@@ -278,29 +279,36 @@ Function GameEditMap()
     // Tarkistetaan hiirell‰ piirto
     blockType = checkRailDraws()
     
+    // Otetaan muokkauskoordinaatit talteen mukavampiin muuttujiin.
+    tileX = gEditedTileX
+    tileY = gEditedTileY
+    
+    // Mink‰ palasen p‰‰lle yritet‰‰n piirt‰‰
+    overTile = TileType( tileX, tileY )
+    
     // Jos tapahtui muutos, niin poistetaan muokatun tilen toisarvoinen raide
     // ja asetetaan nykyinen raide toisarvoiseksi. Uusi raite ensiarvoiseksi.
     // MUTTA vain jos uusi block ei ole sama kuin jo nyt p‰‰ll‰ oleva, tai alla
     // oleva palanen on tyhj‰ tahi raide.
-    If blockType <> False And ( TileType( gEditedTileX, gEditedTileY ) = TILE_TRACK Or TileType( gEditedTileX, gEditedTileY ) = TILE_EMPTY ) Then
-        If blockType <> RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) Then
+    If blockType <> False And ( overTile = TILE_TRACK Or overTile = TILE_EMPTY ) Then
+        If blockType <> RAILS( tileX, tileY, RAIL_TOP ) Then
             // Ei muuteta palasia, jos edellinen palanen on jo x-risteys ja uusi palanen olisi suora.
-            If Not ( ( blockType = TR_VERTICAL Or blockType = TR_HORIZONTAL ) And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS )
+            If Not ( ( blockType = TR_VERTICAL Or blockType = TR_HORIZONTAL ) And RAILS( tileX, tileY, RAIL_TOP ) = TR_XCROSS )
                 // Tarkistetaan, tekeekˆ uusi raide vanhan kanssa x-risteyksen.
-                If blockType = TR_VERTICAL And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_HORIZONTAL Then
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = TR_XCROSS
-                ElseIf blockType = TR_HORIZONTAL And RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_VERTICAL Then
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = TR_XCROSS
-                ElseIf RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = TR_XCROSS Then
+                If blockType = TR_VERTICAL And RAILS( tileX, tileY, RAIL_TOP ) = TR_HORIZONTAL Then
+                    RAILS( tileX, tileY, RAIL_TOP ) = TR_XCROSS
+                    RAILS( tileX, tileY, RAIL_UNDER ) = TR_XCROSS
+                ElseIf blockType = TR_HORIZONTAL And RAILS( tileX, tileY, RAIL_TOP ) = TR_VERTICAL Then
+                    RAILS( tileX, tileY, RAIL_TOP ) = TR_XCROSS
+                    RAILS( tileX, tileY, RAIL_UNDER ) = TR_XCROSS
+                ElseIf RAILS( tileX, tileY, RAIL_TOP ) = TR_XCROSS Then
                     // Jos vanha raide on X-risteys ja uusi raide on mutka, poistetaan X-risteys ja j‰tet‰‰n vain mutka.
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = blockType
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = TR_EMPTY
+                    RAILS( tileX, tileY, RAIL_TOP ) = blockType
+                    RAILS( tileX, tileY, RAIL_UNDER ) = TR_EMPTY
                 Else
                     // Muuten vain siirret‰‰n vanha pala alle ja laitetaan uusi palanen p‰‰lle.
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_UNDER ) = RAILS( gEditedTileX, gEditedTileY, RAIL_TOP )
-                    RAILS( gEditedTileX, gEditedTileY, RAIL_TOP ) = blockType
+                    RAILS( tileX, tileY, RAIL_UNDER ) = RAILS( tileX, tileY, RAIL_TOP )
+                    RAILS( tileX, tileY, RAIL_TOP ) = blockType
                 EndIf
             EndIf
         EndIf

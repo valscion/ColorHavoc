@@ -27,15 +27,7 @@ Const TR_GENERAL = 7
 // (x,1) = Alla olevat kuvat
 Dim RAILIMGS(7,1)
 
-// Vakiot RAIL_IMGS-taulukolle
-Const TR_EMPTY       = 0
-Const TR_TOPLEFT     = 1
-Const TR_TOPRIGHT    = 2
-Const TR_BOTTOMRIGHT = 3
-Const TR_BOTTOMLEFT  = 4
-Const TR_HORIZONTAL  = 5
-Const TR_VERTICAL    = 6
-Const TR_XCROSS      = 7
+// Vakiot löytyvät Map.cb tiedostosta.
 
 RAILIMGS( TR_EMPTY, 0 ) = MakeImage(1,1)
 RAILIMGS( TR_EMPTY, 1 ) = RAILIMGS( TR_EMPTY, 0 )

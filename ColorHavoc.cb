@@ -33,8 +33,8 @@ Const DEBUG = 1
 //--------------------------------------------------------------------------------
 'Include "cbAPI.cb" // by Marcoder
 Include "Utils.cb"
-Include "Media.cb"
 Include "Map.cb"
+Include "Media.cb"
 Include "Menu.cb"
 Include "SaveLoad.cb"
 Include "Editor.cb"
