@@ -226,6 +226,19 @@ Function TileTypeToStr$( _tileType )
 EndFunction
 
 //===============================================================================
+// Funktio kartan tyhjentämistä varten.
+//===============================================================================
+Function ClearMap()
+    For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
+        If bl\img <> 0 Then DeleteImage bl\img
+        Delete bl
+    Next bl
+    
+    gMapAuthor = ""
+    gMapName = ""
+EndFunction
+
+//===============================================================================
 // Funktio, joka kokoaa laatan ja palauttaa luodun kuvan.
 // Toisena parametrina (_colors$) annetaan laatan osien värit välilyonnein
 // eroteltuna merkkijonona.

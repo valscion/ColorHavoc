@@ -101,13 +101,7 @@ Function Editor()
         
         If newClicked  Then
             // New-nappulaa klikattiin. Tyhjennet‰‰n kartta ja sen tiedot.
-            For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
-                If bl\img <> 0 Then DeleteImage bl\img
-                Delete bl
-            Next bl
-            
-            gMapAuthor = ""
-            gMapName = ""
+            ClearMap() 'Map.cb
             
             blockType = -1
             blockColor = TR_GENERAL
@@ -254,7 +248,7 @@ EndFunction
 //================================================================================
 // Lis‰‰ palanen kokoelmaan.
 //================================================================================
-Function AddBlock( _tileX, _tileY, _type, _color$, _directions, _img=0, _ptr=0 )
+Function AddBlock( _tileX, _tileY, _type, _color$, _directions, _ptr=0, _img=0 )
     If _ptr <> 0 Then
         newSB.SPECIALBLOCKS = ConvertToType(_ptr)
     Else
