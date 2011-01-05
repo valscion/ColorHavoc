@@ -6,18 +6,17 @@
 
 // Kokoelma junia varten.
 Type TRAINS
-    Field obj         // Junan objekti
-    Field trainColor  // Väri
-    Field turning     // Onko juna kääntymässä, ja jos on, niin mihin suuntaan.
-    Field tileX       // Tilekoordinaatti, missä ollaan.
-    Field tileY       // Kts. yläpuolelta.
+    Field obj            // Junan objekti
+    Field trainColor     // Väri
+    Field turning        // Onko juna kääntymässä, ja jos on, niin mihin suuntaan.
+    Field immune As Byte // Onko juna immuuni törmäyksille. Käytetään junan luonnissa.
+    Field tileX          // Tilekoordinaatti, missä ollaan.
+    Field tileY          // Kts. yläpuolelta.
 EndType
 
 // Vakiot junien suunnille
 Const TRAIN_NOTURN    = 0
-Const TRAIN_TURNUP    = 1
-Const TRAIN_TURNRIGHT = 2
-Const TRAIN_TURNDOWN  = 2
+Const TRAIN_TURNRIGHT = 1
 Const TRAIN_TURNLEFT  = 2
 
 // Vakio, joka kertoo kuinka paljon moninkertainen nopeuden täytyy junilla olla 
@@ -52,14 +51,14 @@ Function StartGame()
     allowEditing = True
     
     // Junien liikkeiden nopeuden kerroin
-    speedFactor# = 0.02
+    speedFactor# = 0.05
     
     // Kuinka paljon ollaan liikutu yhden ruudun aikana.
     // Kun tätä muuttujaa verrataan TILESIZE-vakioon, saadaan
     // tieto, milloin kaikkien junien tulisi olla mennyt yhden
     // laatan verran eteenpäin. Tämä muuttuja pitää nollata
     // aina kun junat ovat kulkeneet yhden ruudun verran.
-    movedInTile# = 0.0
+    movedInTile# = 32.0
     
     // FPS-riippumaton liike
     oldTime = Timer()
@@ -103,7 +102,7 @@ Function StartGame()
             
             // Nollataan junien liikkeen muuttujat (kts. kommentit niiden kohdalta).
             movement# = 0.0
-            movedInTile# = 0.0
+            movedInTile# = 32.0
         Else
             ClsColor 0,0,0
             
@@ -117,77 +116,80 @@ Function StartGame()
             // Junien siirtämisen suuruuden määräävä muuttuja.
             movement# = speedFactor# * passedTime
             
-            // Kuinka paljon ollaan liikutu yhden ruudun aikana.
+            // Kuinka paljon ollaan liikuttu yhden framen aikana.
             // Kun tätä muuttujaa verrataan TILESIZE-vakioon, saadaan
             // tieto, milloin kaikkien junien tulisi olla mennyt yhden
             // laatan verran eteenpäin. Tämä muuttuja pitää nollata
             // aina kun junat ovat kulkeneet yhden ruudun verran.
             movedInTile# = movedInTile# + movement#
             
-            // Tarkistetaan, ollanako siirrytty yhden laatan verran.
-            If movedInTile# >= TILESIZE Then
+            // Tarkistetaan, ollaanko siirrytty yhden laatan verran.
+            If movedInTile# > TILESIZE Then
                 For tr.TRAINS = Each TRAINS
-                    // Asetetaan juna keskelle palasta, missä sen pitäisikin olla.
-                    // HUOM!! Tämä bugaa välillä, koska tilekoordinaatit eivät päivity! <-------------------------------------------------------------------- HUOM!
-                    xPos# = tr\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
-                    yPos# = tr\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
+                
+                    // Asetetaan junien tilekoordinaatit koskemaan uutta tileä.
+                    tr\tileX = Min( Max( ( ObjectSX( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+                    tr\tileY = Min( Max( ( ObjectSY( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
                     
-                    ScreenPositionObject tr\obj, xPos, yPos
+                    // Tarkistetaan minkä palasen päällä ollaan nyt.
+                    overTile = TileType( tr\tileX, tr\tileY )
                     
-                    // Tarkistetaan törmäykset loppupalaseen.
-                    check = CheckFinishTile( tr\tileX, tr\tileY, tr\trainColor )
-                    If check = False Then
-                        // Oho, törmättiin, virheilmoitus ja takaisin muokkausmoodiin.
-                        GameOver()
-                    ElseIf check = True Then
-                        // Juna pääsi maaliin, poistetaan se pelistä.
-                        DeleteObject tr\obj
-                        Delete tr
+                    If overTile = TILE_START Then
+                        // Jos oltiin alkupalasen päällä, peli hävitään vain jos juna ei ollut immune.
+                        If tr\immune <> True Then
+                            GameOver()
+                            Exit
+                        EndIf
+                    ElseIf overTile <> TILE_FINISH Then
+                        // Tarkista raiteiden suunta vain, jos ei olla alku/loppupalasen päällä.
+                        overTrackTop = RAILS( tr\tileX, tr\tileY, RAIL_TOP )
+                        overTrackUnder = RAILS( tr\tileX, tr\tileY, RAIL_UNDER )
+                        
+                        If overTrackTop = TR_EMPTY Then
+                            // Mitään palasta ei ollut tilessä.
+                            GameOver()
+                            Exit
+                        EndIf
+                    EndIf
+
+                    // Liikutetaan junaa
+                    MoveObject tr\obj, movement#
+                    movedInTile# = movement#
+
+                    centerChecked = False
+                Next tr
+            ElseIf movedInTile# >= TILESIZE/2 And centerChecked = False Then
+                // Jos ollaan kuljettu puoli palasta, eli ollaan keskellä palasta.
+                centerChecked = True
+                
+                For tr.TRAINS = Each TRAINS
+                    If TileType( tr\tileX, tr\tileY ) = TILE_FINISH Then
+                        // Tarkistetaan törmäykset loppupalaseen.
+                        check = CheckFinishTile( tr\tileX, tr\tileY, tr\trainColor )
+                        If check = False Then
+                            // Oho, törmättiin, virheilmoitus ja takaisin muokkausmoodiin.
+                            GameOver()
+                            Exit
+                        ElseIf check = True Then
+                            // Juna pääsi maaliin, poistetaan se pelistä.
+                            DeleteObject tr\obj
+                            Delete tr
+                        Else
+                            // Normaali liikkuminen
+                            MoveObject tr\obj, movement#
+                        EndIf
                     Else
-                        // Muuten liikutetaan normaalisti.
+                        // Normaali liikkuminen
                         MoveObject tr\obj, movement#
-                        movedInTile# = movement#
                     EndIf
                 Next tr
                 
                 // Lisätään uusia junia liikenteeseen, jos niitä on olemassa.
                 PlaceTrains()
-                
-                // Nollataan bordersChecked-muuttuja.
-                bordersChecked = False
-            ElseIf movedInTile# > TILESIZE/2 And bordersChecked = False Then
-                // Jos ollaan kuljettu puoli palasta, eli ollaan juuri menty palasten reunojen yli.
-                bordersChecked = True
-                
-                // Muulloin siirretään junia normaalisti.
-                For tr.TRAINS = Each TRAINS
-                    MoveObject tr\obj, movement#
-                    
-                    // Asetetaan junien tilekoordinaatit koskemaan uutta tileä.
-                    tr\tileX = Min( Max( ( ObjectSX( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-                    tr\tileY = Min( Max( ( ObjectSY( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-                Next tr
             Else
                 // Normaali liikkuminen
                 For tr.TRAINS = Each TRAINS
                     MoveObject tr\obj, movement#
-                    
-                    overTile = TileType( tr\tileX, tr\tileY )
-                    If overTile <> TILE_START And overTile <> TILE_FINISH Then
-                        // Tarkista raiteiden suunta vain, jos ei olla alku/loppupalasen päällä.
-                        overTrack = RAILS( tr\tileX, tr\tileY, RAIL_TOP )
-                        If overTrack = TR_EMPTY Then
-                            GameOver()
-                            Exit
-                        ElseIf overTrack = TR_HORIZONTAL And Max( Int( ObjectAngle( tr\obj ) ) Mod 180, 2 ) > 2 Then
-                            // Tultiin yli 2 astetta väärässä kulmassa, eli törmätään.
-                            GameOver()
-                            Exit
-                        ElseIf overTrack = TR_VERTICAL And ObjectAngle( tr\obj ) < 88.0 Or ObjectAngle( tr\obj ) > 272.0 Then
-                            GameOver()
-                            Exit
-                        EndIf
-                    EndIf
                 Next tr
             EndIf
         EndIf
@@ -215,6 +217,8 @@ Function StartGame()
                 // Muulloin asetetaan junat paikoilleen alkupisteisiinsä.
                 PlaceTrains()
                 
+                centerChecked = True
+                
                 // Asetetaan AddTextit oikeaan kohtaan.
                 If DEBUG Then Locate BORDERSIZE, BORDERSIZE*2 + TILESIZE*MAPSIZE + 60
             EndIf
@@ -230,15 +234,15 @@ Function StartGame()
             SetFont FONTS( FNT_DEFAULT )
             Color cbWhite
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileTypeToStr( TileType2( MouseX(), MouseY() ) )
-            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 20, "Top-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY() ) )
-            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 40, "Under-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY(), True ) )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 15, "Top-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY() ) )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 30, "Under-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY(), True ) )
             
             // Junien tilekoordinaattien listaus
             Color cbGreen
             i=0
             startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 50
             For tr.TRAINS = Each TRAINS
-                Text BORDERSIZE+20, startY + 20*i, "Train "+i+": ( " + tr\tileX + ", " + tr\tileY + ")"
+                Text BORDERSIZE+20, startY + 15*i, "Train "+i+": ( " + tr\tileX + ", " + tr\tileY + ")"
                 i = i + 1
             Next tr
         EndIf
@@ -521,6 +525,9 @@ Function PlaceTrains()
             
             // Asetetaan palaselle uusi kuva, koska sieltä on nyt poistunut yksi juna.
             sb\img = GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( sb\gameColors ) ) )
+            
+            // Asetetaan uusi juna immuuniksi törmäyksille, ettei se törmäisi alkupalaseen.
+            newTrain\immune = True
             
             // Luodaan uusi objekti maailmaan.
             newTrain\obj = CloneObject( TRAINOBJECTS( newTrain\trainColor ) )
