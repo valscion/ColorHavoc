@@ -6,23 +6,31 @@
 
 // Kokoelma junia varten.
 Type TRAINS
-    Field obj            // Junan objekti
-    Field trainColor     // V‰ri
-    Field turning        // Onko juna k‰‰ntym‰ss‰, ja jos on, niin mihin suuntaan.
-    Field immune As Byte // Onko juna immuuni tˆrm‰yksille. K‰ytet‰‰n junan luonnissa.
-    Field tileX          // Tilekoordinaatti, miss‰ ollaan.
-    Field tileY          // Kts. yl‰puolelta.
+    Field obj                // Junan objekti
+    Field trainColor As Byte // V‰ri
+    Field turning            // Onko juna k‰‰ntym‰ss‰, ja jos on, niin mihin suuntaan.
+    Field direction          // Mihin suuntaan juna on menossa (jos ei ole k‰‰ntym‰ss‰).
+    Field immune As Byte     // Onko juna immuuni tˆrm‰yksille. K‰ytet‰‰n junan luonnissa.
+    Field tileX As Short     // Tilekoordinaatti, miss‰ ollaan.
+    Field tileY As Short     // Kts. yl‰puolelta.
 EndType
 
-// Vakiot junien suunnille
+// Vakiot junien k‰‰nt‰misille
 Const TRAIN_NOTURN    = 0
 Const TRAIN_TURNRIGHT = 1
 Const TRAIN_TURNLEFT  = 2
+
+// Vakiot junien suunnille
+Const TRAINDIR_RIGHT   = 0
+Const TRAINDIR_UP      = 1
+Const TRAINDIR_LEFT    = 2
+Const TRAINDIR_DOWN    = 3
 
 // Vakio, joka kertoo kuinka paljon moninkertainen nopeuden t‰ytyy junilla olla 
 // kaarteissa, jotta nemenisiv‰t suoralla menevien kanssa samssa tahdissa. 
 // Arvo: PII / 4
 Const CURVE_SPEED# = 0.78539816339744830961566084581988
+'Const CURVE_SPEED# = 0.8
 
 // Taulukko, joka sis‰lt‰‰ etuk‰teen ladatut kuvat alkupalikoiden kaikista vaiheista.
 Dim GAME_PRELOADEDSTARTS( MAPSIZE-1, MAPSIZE-1, 9 )
@@ -35,6 +43,21 @@ gChangeMode = False
 // Globaali, joka sis‰lt‰‰ tiedon, onko peli jo h‰vitty.
 Global gGameFailed
 gGameFailed = False
+
+// Kuinka paljon ollaan liikuttu yhden ruudun aikana.
+// Kun t‰t‰ muuttujaa verrataan TILESIZE-vakioon, saadaan
+// tieto, milloin kaikkien junien tulisi olla mennyt yhden
+// laatan verran eteenp‰in. T‰m‰ muuttuja pit‰‰ nollata
+// aina kun junat ovat kulkeneet yhden ruudun verran.
+// Koska junat l‰htev‰t keskelt‰ palasta, on liikutettu
+// matka siis puolet yhden laatan koosta.
+Global gMovedInTile As Float
+gMovedInTile = TILESIZE/2
+
+// Junien siirt‰misen suuruuden m‰‰r‰‰v‰ globaali. FPS-riippumaton.
+Global gMovement As Float
+gMovement = 0.0
+
 //================================================================================
 // Pelin p‰‰silmukka
 //================================================================================
@@ -53,12 +76,9 @@ Function StartGame()
     // Junien liikkeiden nopeuden kerroin
     speedFactor# = 0.05
     
-    // Kuinka paljon ollaan liikutu yhden ruudun aikana.
-    // Kun t‰t‰ muuttujaa verrataan TILESIZE-vakioon, saadaan
-    // tieto, milloin kaikkien junien tulisi olla mennyt yhden
-    // laatan verran eteenp‰in. T‰m‰ muuttuja pit‰‰ nollata
-    // aina kun junat ovat kulkeneet yhden ruudun verran.
-    movedInTile# = 32.0
+    // Nollataan liikkeet
+    gMovedInTile = TILESIZE/2
+    gMovement = 0.0
     
     // FPS-riippumaton liike
     oldTime = Timer()
@@ -88,7 +108,7 @@ Function StartGame()
                                 RAILS(x,y,RAIL_TOP) = RAILS(x,y,RAIL_UNDER)
                                 RAILS(x,y,RAIL_UNDER) = tmp
                             EndIf
-                        ElseIf MouseUp(2) Then
+                        ElseIf MouseDown(2) Then
                             // Hiiren kakkospainiketta (yleens‰ oikeata) painiketta painettiin.
                             // Poistetaan hiiren alla oleva tile.
                             DeleteTrack(x,y)
@@ -99,10 +119,6 @@ Function StartGame()
                     DrawTrack(x,y)
                 Next y
             Next x
-            
-            // Nollataan junien liikkeen muuttujat (kts. kommentit niiden kohdalta).
-            movement# = 0.0
-            movedInTile# = 32.0
         Else
             ClsColor 0,0,0
             
@@ -113,23 +129,47 @@ Function StartGame()
                 Next y
             Next x
             
-            // Junien siirt‰misen suuruuden m‰‰r‰‰v‰ muuttuja.
-            movement# = speedFactor# * passedTime
+            // Asetetaan junien nopeuden suuruus.
+            gMovement = speedFactor# * passedTime
             
             // Kuinka paljon ollaan liikuttu yhden framen aikana.
             // Kun t‰t‰ muuttujaa verrataan TILESIZE-vakioon, saadaan
             // tieto, milloin kaikkien junien tulisi olla mennyt yhden
             // laatan verran eteenp‰in. T‰m‰ muuttuja pit‰‰ nollata
             // aina kun junat ovat kulkeneet yhden ruudun verran.
-            movedInTile# = movedInTile# + movement#
+            gMovedInTile = gMovedInTile + gMovement
             
             // Tarkistetaan, ollaanko siirrytty yhden laatan verran.
-            If movedInTile# > TILESIZE Then
+            If gMovedInTile > TILESIZE Then
                 For tr.TRAINS = Each TRAINS
-                
+                    // Jos juna oli ‰sken k‰‰ntym‰ss‰, asetetaan sen suunta oikeaksi.
+                    If tr\turning <> TRAIN_NOTURN Then
+                        If tr\turning = TRAIN_TURNRIGHT Then
+                            tr\direction = tr\direction - 1
+                        ElseIf tr\turning = TRAIN_TURNLEFT Then
+                            tr\direction = tr\direction + 1
+                        EndIf
+                        
+                        If tr\direction >= 4 Then tr\direction = tr\direction - 4
+                        If tr\direction < 0 Then tr\direction = tr\direction + 4
+                        
+                        tr\turning = TRAIN_NOTURN
+                    EndIf
+                    
+                    // Pistet‰‰n juna osoittamaan oikeaan suuntaan, ettei se ala vaeltelemaan.
+                    If tr\direction = TRAINDIR_RIGHT Then
+                        RotateObject tr\obj, 0
+                    ElseIf tr\direction = TRAINDIR_UP Then
+                        RotateObject tr\obj, 90
+                    ElseIf tr\direction = TRAINDIR_LEFT Then
+                        RotateObject tr\obj, 180
+                    Else
+                        RotateObject tr\obj, 270
+                    EndIf
+                    
                     // Asetetaan junien tilekoordinaatit koskemaan uutta tile‰.
-                    tr\tileX = Min( Max( ( ObjectSX( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
-                    tr\tileY = Min( Max( ( ObjectSY( tr\obj ) - BORDERSIZE ) / TILESIZE, 0 ), MAPSIZE-1 )
+                    tr\tileX = tr\tileX + ( tr\direction = TRAINDIR_RIGHT ) - ( tr\direction = TRAINDIR_LEFT )
+                    tr\tileY = tr\tileY + ( tr\direction = TRAINDIR_DOWN ) - ( tr\direction = TRAINDIR_UP )
                     
                     // Tarkistetaan mink‰ palasen p‰‰ll‰ ollaan nyt.
                     overTile = TileType( tr\tileX, tr\tileY )
@@ -149,21 +189,122 @@ Function StartGame()
                             // Mit‰‰n palasta ei ollut tiless‰.
                             GameOver()
                             Exit
-                        EndIf
-                    EndIf
+                        Else
+                            // P‰‰tell‰‰n, k‰‰nnet‰‰nkˆ junaa oikealle tai vasemmalle, riippuen palasesta
+                            // mink‰ p‰‰lle juuri tultiin ja mihin suuntaan juna on t‰ll‰ hetkell‰ menossa.
+                            If tr\direction = TRAINDIR_RIGHT Then
+                                // Oikealle menon tarkistus
+                                If overTrackTop = TR_VERTICAL Or overTrackTop = TR_TOPRIGHT Or overTrackTop = TR_BOTTOMRIGHT Then
+                                    checkTrack = overTrackUnder
+                                Else
+                                    checkTrack = overTrackTop
+                                EndIf
+                                
+                                If checkTrack = TR_BOTTOMLEFT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n oikealle.
+                                    tr\turning = TRAIN_TURNRIGHT
+                                ElseIf checkTrack = TR_TOPLEFT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n vasemmalle.
+                                    tr\turning = TRAIN_TURNLEFT
+                                ElseIf checkTrack = TR_HORIZONTAL Or checkTrack = TR_XCROSS
+                                    // Menkˆˆn juna suoraan.
+                                    tr\turning = TRAIN_NOTURN
+                                Else
+                                    // Nyt kyll‰ tˆrm‰t‰‰n.
+                                    GameOver()
+                                    Exit
+                                EndIf
+                            ElseIf tr\direction = TRAINDIR_UP Then
+                                // Ylˆsp‰in menolle tarkistus
+                                If overTrackTop = TR_HORIZONTAL Or overTrackTop = TR_TOPRIGHT Or overTrackTop = TR_TOPLEFT Then
+                                    checkTrack = overTrackUnder
+                                Else
+                                    checkTrack = overTrackTop
+                                EndIf
+                                
+                                If checkTrack = TR_BOTTOMRIGHT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n oikealle.
+                                    tr\turning = TRAIN_TURNRIGHT
+                                ElseIf checkTrack = TR_BOTTOMLEFT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n vasemmalle.
+                                    tr\turning = TRAIN_TURNLEFT
+                                ElseIf checkTrack = TR_VERTICAL Or checkTrack = TR_XCROSS
+                                    // Menkˆˆn juna suoraan.
+                                    tr\turning = TRAIN_NOTURN
+                                Else
+                                    // Nyt kyll‰ tˆrm‰t‰‰n.
+                                    GameOver()
+                                    Exit
+                                EndIf
+                            ElseIf tr\direction = TRAINDIR_LEFT
+                                // Vasemmalle menon tarkistus
+                                If overTrackTop = TR_VERTICAL Or overTrackTop = TR_TOPLEFT Or overTrackTop = TR_BOTTOMLEFT Then
+                                    checkTrack = overTrackUnder
+                                Else
+                                    checkTrack = overTrackTop
+                                EndIf
+                                
+                                If checkTrack = TR_TOPRIGHT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n oikealle.
+                                    tr\turning = TRAIN_TURNRIGHT
+                                ElseIf checkTrack = TR_BOTTOMRIGHT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n vasemmalle.
+                                    tr\turning = TRAIN_TURNLEFT
+                                ElseIf checkTrack = TR_HORIZONTAL Or checkTrack = TR_XCROSS
+                                    // Menkˆˆn juna suoraan.
+                                    tr\turning = TRAIN_NOTURN
+                                Else
+                                    // Nyt kyll‰ tˆrm‰t‰‰n.
+                                    GameOver()
+                                    Exit
+                                EndIf
+                            ElseIf tr\direction = TRAINDIR_DOWN Then
+                                // Alasp‰in menolle tarkistus
+                                If overTrackTop = TR_HORIZONTAL Or overTrackTop = TR_BOTTOMRIGHT Or overTrackTop = TR_BOTTOMLEFT Then
+                                    checkTrack = overTrackUnder
+                                Else
+                                    checkTrack = overTrackTop
+                                EndIf
+                                
+                                If checkTrack = TR_TOPLEFT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n oikealle.
+                                    tr\turning = TRAIN_TURNRIGHT
+                                ElseIf checkTrack = TR_TOPRIGHT Then
+                                    // Asetetaan juna k‰‰ntym‰‰n vasemmalle.
+                                    tr\turning = TRAIN_TURNLEFT
+                                ElseIf checkTrack = TR_VERTICAL Or checkTrack = TR_XCROSS
+                                    // Menkˆˆn juna suoraan.
+                                    tr\turning = TRAIN_NOTURN
+                                Else
+                                    // Nyt kyll‰ tˆrm‰t‰‰n.
+                                    GameOver()
+                                    Exit
+                                EndIf
+                            EndIf // Suunnat ja k‰‰ntymiset
+                        EndIf // overTrackTop <> TR_EMPTY
+                    EndIf // overTile ei TILE_FINISH eik‰ TILE_START
+                    
+                    // Juna ei ole en‰‰ immuuni
+                    tr\immune = False
+                    
+                    // Hoidetaan junan liikutuksen logiikka
+                    MoveTrain( ConvertToInteger( tr ) )
 
-                    // Liikutetaan junaa
-                    MoveObject tr\obj, movement#
-                    movedInTile# = movement#
-
-                    centerChecked = False
                 Next tr
-            ElseIf movedInTile# >= TILESIZE/2 And centerChecked = False Then
+                
+                // Nollataan
+                gMovedInTile = gMovement
+                centerChecked = False
+                
+            ElseIf gMovedInTile >= TILESIZE/2 And centerChecked = False Then
                 // Jos ollaan kuljettu puoli palasta, eli ollaan keskell‰ palasta.
                 centerChecked = True
                 
+                // Lis‰t‰‰n uusia junia liikenteeseen, jos niit‰ on olemassa.
+                PlaceTrains()
+                
                 For tr.TRAINS = Each TRAINS
-                    If TileType( tr\tileX, tr\tileY ) = TILE_FINISH Then
+                    If tr\immune = False And TileType( tr\tileX, tr\tileY ) = TILE_FINISH Then
                         // Tarkistetaan tˆrm‰ykset loppupalaseen.
                         check = CheckFinishTile( tr\tileX, tr\tileY, tr\trainColor )
                         If check = False Then
@@ -175,21 +316,19 @@ Function StartGame()
                             DeleteObject tr\obj
                             Delete tr
                         Else
-                            // Normaali liikkuminen
-                            MoveObject tr\obj, movement#
+                            // Hoidetaan junan liikutuksen logiikka
+                            MoveTrain( ConvertToInteger( tr ) )
                         EndIf
                     Else
-                        // Normaali liikkuminen
-                        MoveObject tr\obj, movement#
+                        // Hoidetaan junan liikutuksen logiikka
+                        MoveTrain( ConvertToInteger( tr ) )
                     EndIf
                 Next tr
                 
-                // Lis‰t‰‰n uusia junia liikenteeseen, jos niit‰ on olemassa.
-                PlaceTrains()
             Else
-                // Normaali liikkuminen
+                // Hoidetaan kaikkien junien liikutuksen logiikka
                 For tr.TRAINS = Each TRAINS
-                    MoveObject tr\obj, movement#
+                    MoveTrain( ConvertToInteger( tr ) )
                 Next tr
             EndIf
         EndIf
@@ -213,6 +352,10 @@ Function StartGame()
                 
                 // Tyhjennet‰n AddTextill‰ luodut debug-tekstit
                 If DEBUG Then ClearText
+                
+                // Nollataan junien liikkeen muuttujat (kts. kommentit niiden m‰‰rittelyst‰).
+                gMovement = 0.0
+                gMovedInTile = TILESIZE/2
             Else
                 // Muulloin asetetaan junat paikoilleen alkupisteisiins‰.
                 PlaceTrains()
@@ -242,7 +385,7 @@ Function StartGame()
             i=0
             startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 50
             For tr.TRAINS = Each TRAINS
-                Text BORDERSIZE+20, startY + 15*i, "Train "+i+": ( " + tr\tileX + ", " + tr\tileY + ")"
+                Text BORDERSIZE+20, startY + 15*i, "Train "+i+": ( " + tr\tileX + ", " + tr\tileY + ") " + "Turning: " + tr\turning + " | Direction: " + tr\direction
                 i = i + 1
             Next tr
         EndIf
@@ -441,8 +584,8 @@ Function InitializeMap()
     
     // Rakennetaan testikartta
     // GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
-    GameAddBlock( 0, 0, TILE_START, "0 1 2 3 4 5", 2 )
-    GameAddBlock( 6, 0, TILE_FINISH, "5 1 0 3 4 2", 8 )
+    GameAddBlock( 2, 2, TILE_START, "0 1 2 3 4 5", 8 )
+    GameAddBlock( 6, 2, TILE_FINISH, "5 1 0 3 4 2", 8 )
 EndFunction 
 
 //================================================================================
@@ -541,19 +684,26 @@ Function PlaceTrains()
             yPos = sb\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
             ScreenPositionObject newTrain\obj, xPos, yPos
             
+            // Asetetaan juna ei-k‰‰ntym‰‰n.
+            newTrain\turning = TRAIN_NOTURN
+            
             // K‰‰nnet‰‰n juna alkupalasen m‰‰r‰‰m‰‰n suuntaan.
             If sb\directions = 1 Then
                 // Ylˆs
                 RotateObject newTrain\obj, 90
+                newTrain\direction = TRAINDIR_UP
             ElseIf sb\directions = 2 Then
                 // Oikealle
                 RotateObject newTrain\obj, 0
+                newTrain\direction = TRAINDIR_RIGHT
             ElseIf sb\directions = 4 Then
                 // Alas
                 RotateObject newTrain\obj, 270
+                newTrain\direction = TRAINDIR_DOWN
             ElseIf sb\directions = 8 Then
                 // Vasemmalle
                 RotateObject newTrain\obj, 180
+                newTrain\direction = TRAINDIR_LEFT
             Else
                 // Palasen suunta ei ollut yksiselitteinen. Poistetaan
                 // juna maailmasta.
@@ -612,4 +762,48 @@ EndFunction
 Function GameOver()
     gGameFailed = True
     gGameChangeMode = True
+EndFunction 
+
+//================================================================================
+// Yhden junan liikutuksen logiikka.
+//================================================================================
+Function MoveTrain( _typePtr )
+    tr.TRAINS = ConvertToType( _typePtr )
+    
+    If tr\turning = TRAIN_NOTURN Then
+        // Menn‰‰n suoraan
+        MoveObject tr\obj, gMovement
+    ElseIf tr\turning = TRAIN_TURNRIGHT Then
+        // K‰‰nnet‰‰n junaa oikealle
+        angle# = -( gMovedInTile / TILESIZE ) * 90
+        
+        If tr\direction = TRAINDIR_UP Then
+            angle# = angle# - 270
+        ElseIf tr\direction = TRAINDIR_LEFT Then
+            angle# = angle# - 180
+        ElseIf tr\direction = TRAINDIR_DOWN Then
+            angle# = angle# - 90
+        EndIf
+        
+        angle# = WrapAngle( angle# )
+        
+        RotateObject tr\obj, angle#
+        MoveObject tr\obj, gMovement * CURVE_SPEED
+    ElseIf tr\turning = TRAIN_TURNLEFT Then
+        // K‰‰nnet‰‰n junaa vasemmalle
+        angle# = ( gMovedInTile / TILESIZE ) * 90
+        
+        If tr\direction = TRAINDIR_UP Then
+            angle# = angle# - 270
+        ElseIf tr\direction = TRAINDIR_LEFT Then
+            angle# = angle# - 180
+        ElseIf tr\direction = TRAINDIR_DOWN Then
+            angle# = angle# - 90
+        EndIf
+        
+        angle# = WrapAngle( angle# )
+        
+        RotateObject tr\obj, angle#
+        MoveObject tr\obj, gMovement * CURVE_SPEED
+    EndIf
 EndFunction 
