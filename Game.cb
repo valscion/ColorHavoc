@@ -379,11 +379,15 @@ Function StartGame()
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2, "Tile under mouse: " + TileTypeToStr( TileType2( MouseX(), MouseY() ) )
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 15, "Top-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY() ) )
             Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 30, "Under-track under mouse: " + TrackTypeToStr( TrackType2( MouseX(), MouseY(), True ) )
+            Text BORDERSIZE, TILESIZE*MAPSIZE + BORDERSIZE*2 + 45, "Speed: " + speedFactor#
+            
+            // Nopeuden muutos
+            speedFactor# = speedFactor# + MouseMoveZ()*0.01
             
             // Junien tilekoordinaattien listaus
             Color cbGreen
             i=0
-            startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 50
+            startY = TILESIZE*MAPSIZE + BORDERSIZE*2 + 80
             For tr.TRAINS = Each TRAINS
                 Text BORDERSIZE+20, startY + 15*i, "Train "+i+": ( " + tr\tileX + ", " + tr\tileY + ") " + "Turning: " + tr\turning + " | Direction: " + tr\direction
                 i = i + 1
