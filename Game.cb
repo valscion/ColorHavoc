@@ -61,13 +61,13 @@ gMovement = 0.0
 //================================================================================
 // Pelin p‰‰silmukka
 //================================================================================
-Function StartGame()
+Function StartGame( _mapPath = "" )
     // Tyhjennet‰‰n n‰pp‰imistˆ- ja hiiripuskurit
     ClearMouse()
     ClearKeys()
     
     // Alustetaan kartta.
-    InitializeMap()
+    InitializeMap( _mapPath )
     
     // Alustetaan raiteet
     InitializeTracks()
@@ -331,6 +331,43 @@ Function StartGame()
                     MoveTrain( ConvertToInteger( tr ) )
 
                 Next tr
+                
+                // Tarkistetaan junien yhdistymiset
+                For tr.TRAINS = Each TRAINS
+                    // Yhdistet‰‰n junat, jos niit‰ on p‰‰llekk‰in
+                    nextTr.TRAINS = After( tr )
+                    While nextTr <> NULL
+                        tmpDeleted = False
+                        If nextTr\tileX = tr\tileX And nextTr\tileY = tr\tileY Then
+                            // Samassa tiless‰ ollaan
+                            If nextTr\direction = tr\direction Then
+                                // Samaan suuntaan menn‰‰n. Eli yhdistyt‰‰n.
+                                newColor = CombineColors( tr\trainColor, nextTr\trainColor )
+                                tr\trainColor = newColor
+                                PaintObject tr\obj, TRAINOBJECTS( newColor )
+                                
+                                // Otetaan ennen junan poistoa talteen tieto seuraavasta j‰senest‰.
+                                tmpNext.TRAINS = After( nextTr )
+                                tmpDeleted = True
+                                
+                                // Poistetaan toinen juna.
+                                DeleteObject nextTr\obj
+                                Delete nextTr
+                            EndIf
+                        EndIf
+                        
+                        // Siirryt‰‰n eteenp‰in.
+                        If tmpDeleted Then
+                            If tmpNext <> NULL Then
+                                nextTr.TRAINS = After( tmpNext )
+                            Else
+                                nextTr.TRAINS = NULL
+                            EndIf
+                        Else
+                            nextTr.TRAINS = After( nextTr )
+                        EndIf
+                    Wend
+                Next tr
 
             ElseIf gMovedInTile >= TILESIZE/2 And centerChecked = False Then
                 // Jos ollaan kuljettu puoli palasta, eli ollaan keskell‰ palasta.
@@ -342,7 +379,7 @@ Function StartGame()
                 For tr.TRAINS = Each TRAINS
                     If tr\immune = False And TileType( tr\tileX, tr\tileY ) = TILE_FINISH Then
                         // Tarkistetaan tˆrm‰ykset loppupalaseen.
-                        check = CheckFinishTile( tr\tileX, tr\tileY, tr\trainColor )
+                        check = CheckFinishTiles( tr\tileX, tr\tileY, tr\trainColor )
                         If check = False Then
                             // Oho, tˆrm‰ttiin, virheilmoitus ja takaisin muokkausmoodiin.
                             GameOver()
@@ -430,7 +467,7 @@ Function StartGame()
             
             // Rajoitetaan nopeus
             If speedFactor# <= 0.009 Then speedFactor# = 0.01
-            If speedFactor# >= 2.001 Then speedFactor# = 2.0
+            If speedFactor# >= 1.001 Then speedFactor# = 1.0
             
             // Junien tilekoordinaattien listaus
             Color cbGreen
@@ -618,7 +655,7 @@ EndFunction
 //================================================================================
 // Kartan alustus
 //================================================================================
-Function InitializeMap()
+Function InitializeMap( _mapPath )
     // Tyhjennet‰‰n muistissa oleva kartta
     ClearMap()
     
@@ -636,8 +673,10 @@ Function InitializeMap()
     
     // Rakennetaan testikartta
     // GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
-    GameAddBlock( 2, 2, TILE_START, "0 1 2 3 4 5", 8 )
-    GameAddBlock( 6, 2, TILE_FINISH, "5 1 0 3 4 2", 8 )
+    GameAddBlock( 0, 2, TILE_START, "0 0 2", 2 )
+    GameAddBlock( 0, 4, TILE_START, "1 2 1", 2 )
+    'GameAddBlock( 2, 3, TILE_START, "3 4 5", 2 )
+    GameAddBlock( 6, 3, TILE_FINISH, "3 4 5", 8 )
 EndFunction 
 
 //================================================================================
@@ -781,7 +820,7 @@ EndFunction
 //    0: juna tˆrm‰si (v‰‰r‰n v‰rinen tai maali oli jo t‰ynn‰)
 //   -1: juna ei ollut maalin p‰‰ll‰
 //================================================================================
-Function CheckFinishTile( _tileX, _tileY, _trainColor )
+Function CheckFinishTiles( _tileX, _tileY, _trainColor )
 
     position = -1
     
@@ -795,7 +834,7 @@ Function CheckFinishTile( _tileX, _tileY, _trainColor )
                     colorsBefore$ = Trim( Left( sb\gameColors, position - Len( GetWord( sb\gameColors, 1 ) ) ) )
                     colorsAfter$ = Trim( Mid( sb\gameColors, position + Len( GetWord( sb\gameColors, 1 ) ) ) )
                     
-                    sb\gameColors = colorsBefore$ + " " + colorsAfter$
+                    sb\gameColors = Trim( colorsBefore$ + " " + colorsAfter$ )
                     
                     // Asetetaan loppupalaselle uusi kuva.
                     If sb\img <> 0 Then DeleteImage sb\img
@@ -865,4 +904,40 @@ Function MoveTrain( _typePtr )
         RotateObject tr\obj, angle#
         MoveObject tr\obj, gMovement * CURVE_SPEED
     EndIf
+EndFunction 
+
+//================================================================================
+// Mit‰ tulee kahden v‰rin tuloksena?
+//  * Punainen + keltainen  -> Oranssi
+//  * Punainen + sininen    -> Purppura
+//  * Keltainen + sininen   -> Vihre‰
+// Jos v‰rit ovat samat, on myˆs yhdisteen v‰ri sama.
+// Jos mik‰‰n yll‰ olevista ehdoista ei toteudu, tulee ruskeaa.
+//================================================================================
+Function CombineColors( _color1, _color2 )
+    combined = TR_BROWN
+    
+    If _color1 = _color2 Then
+        combined = _color1
+    ElseIf _color1 = TR_RED Then
+        If _color2 = TR_YELLOW Then
+            combined = TR_ORANGE
+        ElseIf _color2 = TR_BLUE Then
+            combined = TR_PURPLE
+        EndIf
+    ElseIf _color1 = TR_YELLOW Then
+        If _color2 = TR_RED Then
+            combined = TR_ORANGE
+        ElseIf _color2 = TR_BLUE Then
+            combined = TR_GREEN
+        EndIf
+    ElseIf _color1 = TR_BLUE Then
+        If _color2 = TR_RED Then
+            combined = TR_PURPLE
+        ElseIf _color2 = TR_YELLOW Then
+            combined = TR_GREEN
+        EndIf
+    EndIf
+    
+    Return combined
 EndFunction 
