@@ -141,6 +141,11 @@ Function StartGame()
             
             // Tarkistetaan, ollaanko siirrytty yhden laatan verran.
             If gMovedInTile > TILESIZE Then
+                // Nollataan
+                gMovedInTile = gMovement
+                centerChecked = False
+                
+                // Käydään kaikki junat läpi ja hoidetaan törmäykset, liikkumisten suunnat ja käännökset
                 For tr.TRAINS = Each TRAINS
                     // Jos juna oli äsken kääntymässä, asetetaan sen suunta oikeaksi.
                     If tr\turning <> TRAIN_NOTURN Then
@@ -165,6 +170,13 @@ Function StartGame()
                         RotateObject tr\obj, 180
                     Else
                         RotateObject tr\obj, 270
+                    EndIf
+                    
+                    // Swapataan vanhojen tilekoordinaattien palasen raiteet keskenään
+                    If RAILS( tr\tileX, tr\tileY, RAIL_UNDER ) <> TR_EMPTY Then
+                        tmp = RAILS( tr\tileX, tr\tileY, RAIL_TOP )
+                        RAILS( tr\tileX, tr\tileY, RAIL_TOP ) = RAILS( tr\tileX, tr\tileY, RAIL_UNDER )
+                        RAILS( tr\tileX, tr\tileY, RAIL_UNDER ) = tmp
                     EndIf
                     
                     // Asetetaan junien tilekoordinaatit koskemaan uutta tileä.
@@ -192,7 +204,13 @@ Function StartGame()
                         Else
                             // Päätellään, käännetäänkö junaa oikealle tai vasemmalle, riippuen palasesta
                             // minkä päälle juuri tultiin ja mihin suuntaan juna on tällä hetkellä menossa.
+                            // Asetetaan juna aina myös keskelle raidetta.
                             If tr\direction = TRAINDIR_RIGHT Then
+                                // Keskitys raiteelle.
+                                posX = tr\tileX * TILESIZE + BORDERSIZE
+                                posY = tr\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
+                                ScreenPositionObject tr\obj, posX, posY
+                                
                                 // Oikealle menon tarkistus
                                 If overTrackTop = TR_VERTICAL Or overTrackTop = TR_TOPRIGHT Or overTrackTop = TR_BOTTOMRIGHT Then
                                     checkTrack = overTrackUnder
@@ -215,6 +233,11 @@ Function StartGame()
                                     Exit
                                 EndIf
                             ElseIf tr\direction = TRAINDIR_UP Then
+                                // Keskitys raiteelle.
+                                posX = tr\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
+                                posY = tr\tileY * TILESIZE + BORDERSIZE + TILESIZE
+                                ScreenPositionObject tr\obj, posX, posY
+                                
                                 // Ylöspäin menolle tarkistus
                                 If overTrackTop = TR_HORIZONTAL Or overTrackTop = TR_TOPRIGHT Or overTrackTop = TR_TOPLEFT Then
                                     checkTrack = overTrackUnder
@@ -237,6 +260,11 @@ Function StartGame()
                                     Exit
                                 EndIf
                             ElseIf tr\direction = TRAINDIR_LEFT
+                                // Keskitys raiteelle.
+                                posX = tr\tileX * TILESIZE + BORDERSIZE + TILESIZE
+                                posY = tr\tileY * TILESIZE + BORDERSIZE + TILESIZE/2
+                                ScreenPositionObject tr\obj, posX, posY
+
                                 // Vasemmalle menon tarkistus
                                 If overTrackTop = TR_VERTICAL Or overTrackTop = TR_TOPLEFT Or overTrackTop = TR_BOTTOMLEFT Then
                                     checkTrack = overTrackUnder
@@ -259,6 +287,11 @@ Function StartGame()
                                     Exit
                                 EndIf
                             ElseIf tr\direction = TRAINDIR_DOWN Then
+                                // Keskitys raiteelle.
+                                posX = tr\tileX * TILESIZE + BORDERSIZE + TILESIZE/2
+                                posY = tr\tileY * TILESIZE + BORDERSIZE
+                                ScreenPositionObject tr\obj, posX, posY
+
                                 // Alaspäin menolle tarkistus
                                 If overTrackTop = TR_HORIZONTAL Or overTrackTop = TR_BOTTOMRIGHT Or overTrackTop = TR_BOTTOMLEFT Then
                                     checkTrack = overTrackUnder
@@ -291,11 +324,7 @@ Function StartGame()
                     MoveTrain( ConvertToInteger( tr ) )
 
                 Next tr
-                
-                // Nollataan
-                gMovedInTile = gMovement
-                centerChecked = False
-                
+
             ElseIf gMovedInTile >= TILESIZE/2 And centerChecked = False Then
                 // Jos ollaan kuljettu puoli palasta, eli ollaan keskellä palasta.
                 centerChecked = True
