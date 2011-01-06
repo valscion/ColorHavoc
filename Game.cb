@@ -62,7 +62,10 @@ gMovement = 0.0
 // Pelin p‰‰silmukka
 //================================================================================
 Function StartGame()
-
+    // Tyhjennet‰‰n n‰pp‰imistˆ- ja hiiripuskurit
+    ClearMouse()
+    ClearKeys()
+    
     // Alustetaan kartta.
     InitializeMap()
     
@@ -172,12 +175,9 @@ Function StartGame()
                         RotateObject tr\obj, 270
                     EndIf
                     
-                    // Swapataan vanhojen tilekoordinaattien palasen raiteet kesken‰‰n
-                    If RAILS( tr\tileX, tr\tileY, RAIL_UNDER ) <> TR_EMPTY Then
-                        tmp = RAILS( tr\tileX, tr\tileY, RAIL_TOP )
-                        RAILS( tr\tileX, tr\tileY, RAIL_TOP ) = RAILS( tr\tileX, tr\tileY, RAIL_UNDER )
-                        RAILS( tr\tileX, tr\tileY, RAIL_UNDER ) = tmp
-                    EndIf
+                    // Otetaan vanhat tilekoordinaatit talteen myˆhemp‰‰ swappausta varten
+                    oldTileX = tr\tileX
+                    oldTileY = tr\tileY
                     
                     // Asetetaan junien tilekoordinaatit koskemaan uutta tile‰.
                     tr\tileX = tr\tileX + ( tr\direction = TRAINDIR_RIGHT ) - ( tr\direction = TRAINDIR_LEFT )
@@ -314,6 +314,13 @@ Function StartGame()
                                     Exit
                                 EndIf
                             EndIf // Suunnat ja k‰‰ntymiset
+                            
+                            // Swapataan vanhojen tilekoordinaattien palasen raiteet kesken‰‰n
+                            If RAILS( oldTileX, oldTileY, RAIL_UNDER ) <> TR_EMPTY Then
+                                tmp = RAILS( oldTileX, oldTileY, RAIL_TOP )
+                                RAILS( oldTileX, oldTileY, RAIL_TOP ) = RAILS( oldTileX, oldTileY, RAIL_UNDER )
+                                RAILS( oldTileX, oldTileY, RAIL_UNDER ) = tmp
+                            EndIf
                         EndIf // overTrackTop <> TR_EMPTY
                     EndIf // overTile ei TILE_FINISH eik‰ TILE_START
                     
@@ -377,7 +384,7 @@ Function StartGame()
                 Next tr
                 
                 // Laitetaan kartta alkukuoseihinsa.
-                GameResetBlocks()
+                GameReset()
                 
                 // Tyhjennet‰n AddTextill‰ luodut debug-tekstit
                 If DEBUG Then ClearText
@@ -386,7 +393,15 @@ Function StartGame()
                 gMovement = 0.0
                 gMovedInTile = TILESIZE/2
             Else
-                // Muulloin asetetaan junat paikoilleen alkupisteisiins‰.
+                // Otetaan nykyinen kartta talteen.
+                For x=0 To MAPSIZE-1
+                    For y=0 To MAPSIZE-1
+                        RAILS_DRAWN( x, y, 0 ) = RAILS( x, y, 0 )
+                        RAILS_DRAWN( x, y, 1 ) = RAILS( x, y, 1 )
+                    Next y
+                Next x
+                
+                // Asetetaan junat paikoilleen alkupisteisiins‰.
                 PlaceTrains()
                 
                 centerChecked = True
@@ -412,6 +427,10 @@ Function StartGame()
             
             // Nopeuden muutos
             speedFactor# = speedFactor# + MouseMoveZ()*0.01
+            
+            // Rajoitetaan nopeus
+            If speedFactor# <= 0.009 Then speedFactor# = 0.01
+            If speedFactor# >= 2.001 Then speedFactor# = 2.0
             
             // Junien tilekoordinaattien listaus
             Color cbGreen
@@ -525,7 +544,7 @@ Function CheckRailDraws()
             For y2=Max(Min(RoundDown(MouseY()/64)-1,10),0) To Max(Min(RoundDown(MouseY()/64)+1,10),0)
                 For i=0 To 1
                     If GLUEPOINTS(x2,y2,i,0) >= BORDERSIZE And GLUEPOINTS(x2,y2,i,1) >= BORDERSIZE Then
-                        If Distance(MouseX(),MouseY(),GLUEPOINTS(x2,y2,i,0),GLUEPOINTS(x2,y2,i,1))<TILESIZE/4 Then 
+                        If Distance(MouseX(),MouseY(),GLUEPOINTS(x2,y2,i,0),GLUEPOINTS(x2,y2,i,1))<TILESIZE/3 Then 
                             If gCRDstartX=-1 Then
                                 gCRDstartX=GLUEPOINTS(x2,y2,i,0)
                                 gCRDstartY=GLUEPOINTS(x2,y2,i,1)
@@ -664,9 +683,9 @@ Function GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
 EndFunction
 
 //================================================================================
-// Resetoi kaikki pelimaailman palaset alkutilaansa.
+// Resetoi kaikki pelimaailman palaset ja raiteet alkutilaansa.
 //================================================================================
-Function GameResetBlocks( )
+Function GameReset( )
     For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
         If sb\blockType = TILE_START Then 
             sb\gameColors = sb\blockColors
@@ -677,6 +696,13 @@ Function GameResetBlocks( )
             sb\img = AssembleBlock( sb\blockType, sb\blockColors, sb\directions )
         EndIf
     Next sb
+    
+    For x=0 To MAPSIZE-1
+        For y=0 To MAPSIZE-1
+            RAILS( x, y, 0 ) = RAILS_DRAWN( x, y, 0 )
+            RAILS( x, y, 1 ) = RAILS_DRAWN( x, y, 1 )
+        Next y
+    Next x
 EndFunction
 
 //================================================================================
