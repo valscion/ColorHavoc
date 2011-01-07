@@ -244,18 +244,20 @@ GUIIMAGES( GUI_MENUBG )   = LoadImage("media/backgrounds/menu.png")
 //================================================================================
 
 // Fonttien m‰‰r‰
-Const FONTS_AMOUNT = 4
+Const FONTS_AMOUNT = 5
 
 // Fontit sis‰lt‰v‰ taulukko
 Dim FONTS( FONTS_AMOUNT-1 )
 
 // Fontteja varten vakiot
-Const FNT_DEFAULT = 0
-Const FNT_MENU = 1
+Const FNT_DEFAULT           = 0
+Const FNT_MENU              = 1
 Const FNT_OVERLAYMENU_TITLE = 2
-Const FNT_OVERLAYMENU = 3
+Const FNT_OVERLAYMENU       = 3
+Const FNT_CRASHED           = 4
 
 FONTS( FNT_DEFAULT )            = LoadFont( "Trebuchet MS", 18, OFF, OFF, OFF )
 FONTS( FNT_MENU )               = LoadFont( "Trebuchet MS", 22, OFF, ON, OFF )
 FONTS( FNT_OVERLAYMENU_TITLE )  = LoadFont( "Trebuchet MS", 34, ON, ON, OFF )
 FONTS( FNT_OVERLAYMENU )        = LoadFont( "Trebuchet MS", 22, ON, OFF, OFF )
+FONTS( FNT_CRASHED )            = LoadFont( "Arial", 24, ON, OFF, OFF )
