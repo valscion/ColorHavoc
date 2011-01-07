@@ -29,9 +29,12 @@ Const TR_XCROSS      = 7
 // Taulukkojen soluihin tallennettavat vakiot ovat samat kuin MAPS-taulukolla.
 // (tileX, tileY, 0) = P‰‰ll‰ oleva palikka
 // (tileX, tileY, 1) = Alla oleva palikka
-Dim RAILS(MAPSIZE-1,MAPSIZE-1,1)
+Dim RAILS( MAPSIZE-1, MAPSIZE, 2 )
 Const RAIL_TOP = 0
 Const RAIL_UNDER = 1
+
+// Taulukko, johon tallennetaan ennen junien liikkeelle l‰htˆ‰ ollut kartta
+Dim RAILS_DRAWN( MAPSIZE-1, MAPSIZE, 2 )
 
 // Kokoelma erikoispaloja (alku- ja loppup‰‰t, maalauspalikat yms.) varten.
 Type SPECIALBLOCKS
