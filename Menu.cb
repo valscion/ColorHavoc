@@ -22,7 +22,7 @@ Function DrawMenu( _menu = MNU_MAIN )
         SetFont FONTS( FNT_MENU )
         
         If DrawMenuItem( "Start game!", 100 ) Then
-            StartGame()
+            StartGame(CurrentDir()+"saves\DimmingRainbow.coh")
             SetFont FONTS( FNT_MENU )
         ElseIf DrawMenuItem( "Go to editor", 200 ) Then
             Editor()

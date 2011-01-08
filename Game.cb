@@ -62,13 +62,18 @@ gMovement = 0.0
 //================================================================================
 // Pelin pääsilmukka
 //================================================================================
-Function StartGame( _mapPath = "" )
+Function StartGame( _mapPath$ = "" )
     // Tyhjennetään näppäimistö- ja hiiripuskurit
     ClearMouse()
     ClearKeys()
     
     // Alustetaan kartta.
-    InitializeMap( _mapPath )
+    mapInit = InitializeMap( _mapPath$ )
+    If mapInit <> True Then
+        errorInfo$ = getLoadMapError( mapInit )
+        DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$, "Error" )
+        Return False
+    EndIf
     
     // Alustetaan raiteet
     InitializeTracks()
@@ -154,10 +159,19 @@ Function StartGame( _mapPath = "" )
                     // Koska CB:ssä ei ole Continue-avainsanaa, korvataan sen puute käyttämällä Repeat-Until
                     // silmukkaa, joka käy vain kerran läpi. Tällöin Exit toimii kuin Continue.
                     Repeat
-                        If tr\deleteNext = True Then
-                            // Juna haluttiin poistaa, nyt on sen aika. GameOver myös.
-                            GameOver( ConvertToInteger( tr ) )
-                            Exit
+                        If TileType( tr\tileX, tr\tileY ) = TILE_FINISH Then
+                            // Tarkistetaan törmäykset loppupalaseen.
+                            check = CheckFinishTiles( tr\tileX, tr\tileY, tr\trainColor )
+                            If check = False Then
+                                // Oho, törmättiin, virheilmoitus ja takaisin muokkausmoodiin.
+                                GameOver( ConvertToInteger( tr ) )
+                                Exit
+                            ElseIf check = True Then
+                                // Juna pääsi maaliin, poistetaan se pelistä
+                                DeleteObject tr\obj
+                                Delete tr
+                                Exit
+                            EndIf
                         EndIf
                         
                         // Asetetaan junan tietoihin, että se on keskellä palasta.
@@ -247,18 +261,7 @@ Function StartGame( _mapPath = "" )
                             // Törmätään esteeseen.
                             GameOver( ConvertToInteger( tr ) )
                             Exit
-                        ElseIf overTile = TILE_FINISH Then
-                            // Tarkistetaan törmäykset loppupalaseen.
-                            check = CheckFinishTiles( tr\tileX, tr\tileY, tr\trainColor )
-                            If check = False Then
-                                // Oho, törmättiin, virheilmoitus ja takaisin muokkausmoodiin.
-                                GameOver( ConvertToInteger( tr ) )
-                                Exit
-                            ElseIf check = True Then
-                                // Juna pääsi maaliin, asetetaan se poistettavaksi.
-                                tr\deleteNext = True
-                            EndIf
-                        Else
+                        ElseIf overTile <> TILE_FINISH
                             // Nyt ei olla enää erikoispalasten päällä.
                             overTrackTop = RAILS( tr\tileX, tr\tileY, RAIL_TOP )
                             overTrackUnder = RAILS( tr\tileX, tr\tileY, RAIL_UNDER )
@@ -695,9 +698,12 @@ Function CheckRailDraws()
 EndFunction 
 
 //================================================================================
-// Kartan alustus
+// Kartan alustus. Palauttaa True jos kaikki meni hyvin, muuten palautetaan
+// LoadMapFile()-funktion palauttama virhearvo. Kannattaa käyttää funktiota
+// getLoadMapError( virhekoodi ), kun tulostetaan käyttäjälle mitä kartan
+// latauksessa meni pieleen.
 //================================================================================
-Function InitializeMap( _mapPath )
+Function InitializeMap( _mapPath$ )
     // Tyhjennetään muistissa oleva kartta
     ClearMap()
     
@@ -712,6 +718,34 @@ Function InitializeMap( _mapPath )
             Next i
         Next y
     Next x
+    
+    // Ladataan muistiin karttalista
+    LoadMapList()
+    
+    // Ladataan kartta.
+    ret = LoadMapFile( _mapPath$ )
+    If ret = True Then
+        
+        For sb.SPECIALBLOCKS = Each SPECIALBLOCKS
+            sb\gameColors = sb\blockColors
+            If sb\blockType = TILE_START Then 
+                // Ladataan etukäteen kaikki tulevat kuvat alkupalasille.
+                colors$ = "pois " + sb\gameColors
+                While CountWords( colors$ ) > 0
+                    colors$ = Trim( Right( colors$, Len( colors$ ) - Len( GetWord( colors$, 1 ) ) ) )
+                    
+                    If GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( colors$ ) ) ) = 0 Then
+                        GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( colors$ ) ) ) = AssembleBlock( sb\blockType, colors$, sb\directions, sb\blockColors )
+                    EndIf
+                Wend
+                
+                // Asetetaan ensimmäinen kuva tälle palaselle
+                sb\img = GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( sb\gameColors ) ) )
+            EndIf
+        Next sb
+    EndIf
+    
+    Return ret
     
     // Rakennetaan testikartta
     // GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )

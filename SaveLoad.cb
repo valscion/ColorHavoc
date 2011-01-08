@@ -4,6 +4,13 @@
 // Karttojen ja ratkaisujen tallentaminen.
 //********************************************************************************
 
+// Tyyppikokoelma koko saves-kansion rekursiivista läpikäymistä varten.
+Type SEARCHMAPS
+    Field isDir As Byte      // Onko tämä kokoelman jäsen kansio.
+    Field searched As Byte   // Ollaanko tämä kansio jo selattu läpi.
+    Field filePath As String // Tiedostopolku
+EndType
+
 //================================================================================
 // Tallennusmenun piirtäminen editoriin.
 //================================================================================
@@ -183,30 +190,12 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
                 
                 // Jos hiirellä klikataan, otetaan kartta valituksi.
                 // Otetaan muistiin myös kartan tekijä ja nimi.
-                If MouseUp(1) Or doubleClick Then
+                If MouseUp(1) Then
                     chosenFile$ = map\filePath
                     chosenFileAuthor$ = map\author
                     chosenFileName$ = map\name
-                    If doubleClick Then
-                        // Tuplaklikkauksella valitaan kartta ja poistutaan.
-                        
-                        // Ladataan tiedosto.
-                        loaded = LoadMapFile( chosenFile$ )
-                        
-                        If loaded = True Then
-                            gMapAuthor = chosenFileAuthor$
-                            gMapName = chosenFileName$
-                            DrawOverlayInfo( "The map was loaded successfully", "Info", gOverlayY+135 )
-                            
-                            // Poistutaan silmukasta, eihän latausruutua enää tarvitse pitää avoinna.
-                            exitLoop = True
-                        Else
-                            errorInfo$ = getLoadMapError( loaded )
-                            DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$, "Error", gOverlayY+135 )
-                        EndIf
-                    EndIf
                 EndIf
-                    
+            
             ElseIf chosenFile$ = map\filePath Then
                 // Tämä kartta on valittu, piirretään sille valkoiset reunukset.
                 Color cbWhite
@@ -266,8 +255,9 @@ Function EditorLoadMenu( _bottomY=-1, _height=-1 )
         
         // Täytyy ennen DrawScreeniä tarkistaa, halutaanko poistua silmukasta.
         // Muuten ruutu välähtää.
-        If EscapeKey() Or KeyHit(cbKeyQ) Or exitLoop Then Exit
+        If EscapeKey() Or KeyHit(cbKeyQ) Then Exit
         
+        SetWindow "mapfile: " + chosenFile$
         DrawScreen
     Forever
     
@@ -329,65 +319,93 @@ EndFunction
 //================================================================================
 // Funktio lataa kaikkien karttojen tiedot muistiin. Tietoihin kuuluu siis
 // tiedostopolun lisäksi kartan tekijä, nimi ja md5-hash. Tiedot tallennetaan 
-// MAPS-kokoelmaan. Funktio palauttaa totuusarvon, onnistuttiinko löytämään edes 
-// yksi kartta.
+// MAPS-kokoelmaan. Palauttaa False jos saves-kansiota ei löytynyt.
 //================================================================================
 Function LoadMapList()
 
+    // Tyhjennetään eka koko karttalista
     For map.MAPS = Each MAPS
-        // Tyhjennetään eka koko karttalista
         Delete map
     Next map
+    For F.SEARCHMAPS = Each SEARCHMAPS
+        Delete F
+    Next F
     
-    If Not IsDirectory("saves") Then Return False
+    // Otetaan muistiin alkuperäinen työhakemisto
+    startDir$ = CurrentDir()
     
-    didWeFindAMap = False
+    // Tehdään absoluuttinen polku saves-kansiosta.
+    path$ = CurrentDir() + "saves\"
     
-    ChDir "saves"
-    
-    StartSearch
-        // Etsitään kaikki .coh-päätteiset tiedostot ja ladataan niiden tiedot muistiin.
-        Repeat
-            file$ = FindFile()
-            
-            If file$ = "" Then Exit // Kaikki käyty läpi.
-            
-            If Lower( Right(file$, 4) ) = ".coh" Then
-                // Nyt on oikea pääte tiedostolla, tarkistetaan vielä että signature on oikea.
-                f = OpenToRead( file$ )
-                    If ReadString2( f, 3 ) = "CoH" Then
-                        // Oli oikea signature, ladataan tiedot muistiin.
-                        version$ = Trim( ReadString2( f, 13 ) )
-                        If version$ = COH_VERSION Then
-                            // Tiedoston versiokin on oikea. Jatketaan lukemista :)
-                            ReadString2( f, 16 ) // Ei vielä käytössä
-                            mapName$ = Trim( ReadString2( f, 32 ) )
-                            mapAuthor$ = Trim( ReadString2( f, 32 ) )
-                            mapMD5Hash$ = Trim( ReadString2( f, 32 ) )
-                            
-                            // Sitten tarkistetaan ettei tekijä tai kartta ole tyhjä, eikä
-                            // md5-hashin pituus ole väärä (ei-32). 
-                            If mapName$ <> "" And mapAuthor$ <> "" And Len( mapMD5Hash$ ) = 32 Then
-                                // Nytten voidaan laittaa tiedot muistiin.
-                                map.MAPS = New( MAPS )
-                                map\filePath = CurrentDir() + file$
-                                map\name = mapName$
-                                map\author = mapAuthor$
-                                map\hash = mapMD5Hash$
-                                didWeFindAMap = True
-                            EndIf
+    // Tarkistetaan validius
+    If Not IsDirectory(path$) Then
+        Return False
+    EndIf
+
+    F.SEARCHMAPS = New( SEARCHMAPS )
+    F\filePath = path$
+    F\searched = False
+    F\isDir = True
+
+    For F.SEARCHMAPS = Each SEARCHMAPS
+        If Not F\searched Then
+            ChDir F\filePath
+            StartSearch
+                Repeat
+                    file$ = FindFile()
+                    If file$ = "" Then Exit
+                    If file$ <> "." And file$ <> ".." Then
+                        FF.SEARCHMAPS = New( SEARCHMAPS )
+                        FF\filePath = CurrentDir() + file$
+                        If IsDirectory( FF\filePath ) Then
+                            FF\searched = False
+                            FF\isDir = True
+                        Else
+                            FF\searched = True
+                            FF\isDir = False
                         EndIf
                     EndIf
-                CloseFile f
-            EndIf
-        Forever
-    EndSearch
-    // Jösses mikä sisennysten sulkeminen :D
+                Forever
+            EndSearch
+            F\searched = True
+        EndIf
+    Next F
+
+    ChDir startDir$
     
-    // Vaihdetaan takaisin edelliseen kansioon.
-    ChDir ".."
+    For mapSearched.SEARCHMAPS = Each SEARCHMAPS
+        If mapSearched\isDir = False And Right( Lower( mapSearched\filePath ), 4 ) = ".coh" Then
+            handle = OpenToRead( mapSearched\filePath )
+                If ReadString2( handle, 3 ) = "CoH" Then
+                    // Oli oikea signature, ladataan tiedot muistiin.
+                    version$ = Trim( ReadString2( handle, 13 ) )
+                    If version$ = COH_VERSION Then
+                        // Tiedoston versiokin on oikea. Jatketaan lukemista :)
+                        ReadString2( handle, 16 ) // Ei vielä käytössä
+                        mapName$ = Trim( ReadString2( handle, 32 ) )
+                        mapAuthor$ = Trim( ReadString2( handle, 32 ) )
+                        mapMD5Hash$ = Trim( ReadString2( handle, 32 ) )
+                        
+                        // Sitten tarkistetaan ettei tekijä tai kartta ole tyhjä, eikä
+                        // md5-hashin pituus ole väärä (ei-32). 
+                        If mapName$ <> "" And mapAuthor$ <> "" And Len( mapMD5Hash$ ) = 32 Then
+                            // Nytten voidaan laittaa tiedot muistiin.
+                            map.MAPS = New( MAPS )
+                            map\filePath = mapSearched\filePath
+                            map\name = mapName$
+                            map\author = mapAuthor$
+                            map\hash = mapMD5Hash$
+                        EndIf
+                    EndIf
+                EndIf
+            CloseFile handle
+        EndIf
+    Next mapSearched
     
-    Return didWeFindAMap
+    // Vaihdetaan takaisin alkuperäiseen työkansioon.
+    ChDir startDir$
+    
+    Return True
     
 EndFunction 
 
@@ -406,7 +424,6 @@ EndFunction
 // palauttaa virhekoodiin liittyvän tiedon selkokielisenä.
 //================================================================================
 Function LoadMapFile( _filePath$ )
-
     ret = False
 
     // Tyhjätään kartta muistista.
@@ -414,6 +431,7 @@ Function LoadMapFile( _filePath$ )
         If bl\img <> 0 Then DeleteImage bl\img
         Delete bl
     Next bl
+
     
     For map.MAPS = Each MAPS
         If map\filePath = _filePath$ Then
