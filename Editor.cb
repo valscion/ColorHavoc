@@ -96,7 +96,7 @@ Function Editor()
         blockIsValid = CheckBlockValidity( blockType, blockColor, blockDirections )
         SetWindow "Valid: " + blockIsValid
         
-        If saveClicked Then EditorSaveMenu(currentMap$, startY+240, 180 ) 
+        If saveClicked Then EditorSaveMenu( currentMap$, startY+240, 180 ) 
         If loadClicked Then EditorLoadMenu( startY+240, 400 )
         
         If newClicked  Then
@@ -107,7 +107,30 @@ Function Editor()
             blockColor = TR_GENERAL
             blockDirections = 0
             
-            blockImg = MakeImage(1,1)
+            blockImg = MakeImage( 1, 1 )
+        EndIf
+        
+        If testClicked Then
+            If FileExists( currentMap$ ) Then 
+                If IsDirectory( currentMap$ )=0 Then
+                    DeleteFile currentMap$
+                Else
+                    currentMap$ = getTmpFilePath()
+                EndIf
+            EndIf
+            
+            savedTmp = SaveMapFile( currentMap$ )
+            If savedTmp = True Then
+                StartGame( currentMap$ )
+                
+                // Ladataan tiedosto takaisin editoriin.
+                If LoadMapFile( currentMap$ ) <> True
+                    errorInfo$ = getLoadMapError( loaded )
+                    DrawOverlayInfo( "There was a problem with re-loading the map!||" + errorInfo$, "Error" )
+                EndIf
+            Else
+                DrawOverlayInfo( "There was a problem with temporary map saving!|Please try again.", "Error" )
+            EndIf
         EndIf
         
         DrawScreen
@@ -326,10 +349,10 @@ EndFunction
 // Funktio palauttaa randomilla tehdyn tiedostopolun tmp-tiedostoa varten.
 //================================================================================
 Function getTmpFilePath()
-    folder$ = "saves/tmp/"
+    folder$ = CurrentDir()+"saves\tmp\"
     If Not IsDirectory("saves") Then MakeDir "saves"
-    If Not IsDirectory("saves/tmp") Then MakeDir "saves/tmp"
-    If IsDirectory("saves")=0 Or IsDirectory("saves/tmp")=0 Then
+    If Not IsDirectory("saves\tmp") Then MakeDir "saves\tmp"
+    If IsDirectory("saves")=0 Or IsDirectory("saves\tmp")=0 Then
         MakeError "Problem creating temporary directory!"
     EndIf
     

@@ -43,7 +43,7 @@ End Function
 Global gDoubleClickTimer
 gDoubleClickTimer = 0
 Function MouseDoubleClick( button=1 )
-    If MouseUp(button) 
+    If MouseUp(button)
         If gDoubleClickTimer > Timer() Then
             gDoubleClickTimer = 0
             Return True

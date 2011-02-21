@@ -71,7 +71,7 @@ Function StartGame( _mapPath$ = "" )
     mapInit = InitializeMap( _mapPath$ )
     If mapInit <> True Then
         errorInfo$ = getLoadMapError( mapInit )
-        DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$, "Error" )
+        DrawOverlayInfo( "There was a problem with loading the map!||" + errorInfo$ + "|Map path: " + Replace( _mapPath$, CurrentDir(), "" ), "Error" )
         Return False
     EndIf
     
@@ -743,16 +743,22 @@ Function InitializeMap( _mapPath$ )
                 sb\img = GAME_PRELOADEDSTARTS( sb\tileX, sb\tileY, Int( CountWords( sb\gameColors ) ) )
             EndIf
         Next sb
+        
+        Return True
+    ElseIf ret <> False
+        Return ret
+    Else
+        // Karttaa ei löytynyt, rakennetaan testikartta.
+        // GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
+        GameAddBlock( 0, 2, TILE_START, "0 0 2", 2 )
+        GameAddBlock( 0, 4, TILE_START, "1 2 1", 2 )
+        'GameAddBlock( 2, 3, TILE_START, "3 4 5", 2 )
+        GameAddBlock( 6, 3, TILE_FINISH, "3 4 5", 8 )
+        
+        Return True
     EndIf
     
     Return ret
-    
-    // Rakennetaan testikartta
-    // GameAddBlock( _tileX, _tileY, _type, _colors$, _directions )
-    GameAddBlock( 0, 2, TILE_START, "0 0 2", 2 )
-    GameAddBlock( 0, 4, TILE_START, "1 2 1", 2 )
-    'GameAddBlock( 2, 3, TILE_START, "3 4 5", 2 )
-    GameAddBlock( 6, 3, TILE_FINISH, "3 4 5", 8 )
 EndFunction 
 
 //================================================================================
