@@ -38,7 +38,10 @@ Function EditorSaveMenu( savePath$ = "", _bottomY=-1, _height=-1 )
     SetInput2Position( nameInput, Len(gMapName) )
     
     // Tyhjennet‰‰n hiiripuskuri, ettei valikko vain v‰l‰hd‰ ruudulla.
-    ClearMouse()
+    ClearMouse
+    
+    // Tyhj‰t‰‰n myˆs n‰pp‰inpuskuri, jotta ei tule haamukirjaimia.
+    ClearKeys
     Repeat
         DrawImage bgImg, 0, 0
         
@@ -342,6 +345,14 @@ Function LoadMapList()
         Return False
     EndIf
 
+    If DEBUG Then
+        If FileExists( "dbg-LoadMapList.tmp" ) Then DeleteFile "dbg-LoadMapList.tmp"
+        dbgFile = OpenToWrite( "dbg-LoadMapList.tmp" )
+        WriteLine dbgFile, "startpath: " + path$
+        WriteLine dbgFile, "----------"
+        WriteLine dbgFile, ""
+    EndIf
+
     F.SEARCHMAPS = New( SEARCHMAPS )
     F\filePath = path$
     F\searched = False
@@ -360,9 +371,11 @@ Function LoadMapList()
                         If IsDirectory( FF\filePath ) Then
                             FF\searched = False
                             FF\isDir = True
+                            If DEBUG Then WriteLine dbgFile, "FOLDER: " + FF\filePath
                         Else
                             FF\searched = True
                             FF\isDir = False
+                            If DEBUG Then WriteLine dbgFile, "FILE: " + FF\filePath
                         EndIf
                     EndIf
                 Forever
@@ -372,6 +385,13 @@ Function LoadMapList()
     Next F
 
     ChDir startDir$
+    
+    If DEBUG Then
+        WriteLine dbgFile, "----------"
+        WriteLine dbgFile, "Finding files is now over!"
+        WriteLine dbgFile, "Starting to check them now."
+        WriteLine dbgFile, "----------"
+    EndIf
     
     For mapSearched.SEARCHMAPS = Each SEARCHMAPS
         If mapSearched\isDir = False And Right( Lower( mapSearched\filePath ), 4 ) = ".coh" Then
@@ -386,24 +406,38 @@ Function LoadMapList()
                         mapAuthor$ = Trim( ReadString2( handle, 32 ) )
                         mapMD5Hash$ = Trim( ReadString2( handle, 32 ) )
                         
-                        // Sitten tarkistetaan ettei tekij‰ tai kartta ole tyhj‰, eik‰
-                        // md5-hashin pituus ole v‰‰r‰ (ei-32). 
-                        If mapName$ <> "" And mapAuthor$ <> "" And Len( mapMD5Hash$ ) = 32 Then
+                        // Sitten tarkistetaan ettei md5-hashin pituus ole v‰‰r‰ (ei-32). 
+                        If Len( mapMD5Hash$ ) = 32 Then
                             // Nytten voidaan laittaa tiedot muistiin.
                             map.MAPS = New( MAPS )
                             map\filePath = mapSearched\filePath
                             map\name = mapName$
                             map\author = mapAuthor$
                             map\hash = mapMD5Hash$
+                        ElseIf DEBUG Then
+                            WriteLine dbgFile, "SKIPPED4: " + mapSearched\filePath
                         EndIf
+                    ElseIf DEBUG Then
+                        WriteLine dbgFile, "SKIPPED3: " + mapSearched\filePath
                     EndIf
+                ElseIf DEBUG Then
+                    WriteLine dbgFile, "SKIPPED2: " + mapSearched\filePath
                 EndIf
             CloseFile handle
+        ElseIf DEBUG Then
+            WriteLine dbgFile, "SKIPPED1: " + mapSearched\filePath
         EndIf
     Next mapSearched
     
     // Vaihdetaan takaisin alkuper‰iseen tyˆkansioon.
     ChDir startDir$
+    
+    If DEBUG Then
+        WriteLine dbgFile, "----------"
+        WriteLine dbgFile, "Closing file..."
+        WriteLine dbgFile, "----------"
+        CloseFile dbgFile
+    EndIf
     
     Return True
     
@@ -432,19 +466,38 @@ Function LoadMapFile( _filePath$ )
         Delete bl
     Next bl
 
+    If DEBUG Then
+        If FileExists( "dbg-LoadMapFile.tmp" ) Then DeleteFile "dbg-LoadMapFile.tmp"
+        dbgFile = OpenToWrite( "dbg-LoadMapFile.tmp" )
+        WriteLine dbgFile, "FilePath: " + _filePath$
+        WriteLine dbgFile, "-----------"
+    EndIf    
     
     For map.MAPS = Each MAPS
+        If DEBUG Then WriteLine dbgFile, "FILE: " + map\filePath
         If map\filePath = _filePath$ Then
-            // Lˆytyi tiedosto annetusta polusta
-            ret = True
+            If DEBUG Then WriteLine dbgFile, "  File matches the FilePath..."
+            If FileExists( _filePath$ ) And IsDirectory( _filePath$ )=0 Then
+                // Lˆytyi tiedosto annetusta polusta
+                ret = True
+                If DEBUG Then WriteLine dbgFile, "  File was found..."
+            Else
+                // Ei ollutkaan tiedostoa olemassa :(
+                ret = False
+                If DEBUG Then WriteLine dbgFile, "  ERROR! File not found!"
+                Exit
+            EndIf
             
             f = OpenToRead( _filePath$ )
+                If DEBUG Then WriteLine dbgFile, "  Opened file to read..."
                 // Luetaan tiedostosta kartan tiedot. Tarkistetaan samalla
                 // ett‰ kartta on tiedoiltaan sama kuin muistissa oleva.
                 If ReadString2( f, 3 ) = "CoH" Then
+                    If DEBUG Then WriteLine dbgFile, "  Correct signature..."
                     // Oli oikea signature, ladataan tiedot muistiin.
                     version$ = Trim( ReadString2( f, 13 ) )
                     If version$ = COH_VERSION Then
+                        If DEBUG Then WriteLine dbgFile, "  Correct version..."
                         // Tiedoston versiokin on oikea. Jatketaan lukemista :)
                         ReadString2( f, 16 ) // Ei viel‰ k‰ytˆss‰
                         mapName$ = Trim( ReadString2( f, 32 ) )
@@ -453,6 +506,7 @@ Function LoadMapFile( _filePath$ )
                         
                         // Verrataan luettuja tietoja muistissa oleviin.
                         If mapName$ = map\name And mapAuthor$ = map\author Then
+                            If DEBUG Then WriteLine dbgFile, "  Matching name a"+"nd author..."
                             If mapMD5Hash$ = map\hash Then
                                 // N‰ytt‰is olevan kaikki jeesh.
                                 ret = True
@@ -460,6 +514,7 @@ Function LoadMapFile( _filePath$ )
                                 // Jatketaan tietojen hakua, kunnes tulee stoppi. 
                                 // Seuraavat loput tavut sis‰lt‰v‰t kartan datan.
                                 While Not EOF( f )
+                                    If DEBUG Then WriteLine dbgFile, "  Reading a block..."
                                     sb.SPECIALBLOCKS = New( SPECIALBLOCKS )
                                     sb\tileX = ReadByte( f )
                                     sb\tileY = ReadByte( f )
@@ -481,24 +536,36 @@ Function LoadMapFile( _filePath$ )
                                 Wend
                             Else
                                 // MD5-hash oli virheellinen
+                                If DEBUG Then WriteLine dbgFile, "  Erroneus MD5-hash!"
                                 ret = -4
                             EndIf
                         Else
                             // Kartan tekij‰ tai nimi oli eri kuin muistiin ladatun kartan.
+                            If DEBUG Then WriteLine dbgFile, "  Erroneus author o"+"r name!"
                             ret = -3
                         EndIf
                     Else
                         // Tallennuksen versio oli virheellinen
+                        If DEBUG Then WriteLine dbgFile, "  Erroneus version!"
                         ret = -2
                     EndIf
                 Else
                     // V‰‰r‰ signature
+                    If DEBUG Then WriteLine dbgFile, "  Erroneus signature!"
                     ret = -1
                 EndIf
             CloseFile f
+        Else
+            If DEBUG Then WriteLine dbgFile, "  File doesn't match the FilePath!"
         EndIf
     Next map
-    // Toinen aika ihana sisennysten sulkeminen :D
+    
+    If DEBUG Then
+        WriteLine dbgFile, "-----------"
+        WriteLine dbgFile, "Reading a file t"+"o memory done!"
+        WriteLine dbgFile, "Now let's check blocks fo"+"r validity."
+        WriteLine dbgFile, "-----------"
+    EndIf
     
     // Jatketaan kartan latausta eteenp‰in, jos t‰h‰n menness‰ kaikki on mennyt jees.
     If ret = True Then
@@ -508,16 +575,23 @@ Function LoadMapFile( _filePath$ )
             If CheckBlockValidity( bl\blockType, bl\blockColors, bl\directions ) = False Then
                 nonValid = True
                 If DEBUG Then
-                    // DEBUG-moodissa tehd‰‰n kuvaava MakeError
-                    nl$ = Chr(10)+Chr(13)
+                    // DEBUG-moodissa tehd‰‰n kuvaava virhe.
+                    nl$ = "|"
                     error$ = "Erroneous block at ( " + bl\tileX + ", " + bl\tileY + " )" + nl$
                     error$ = error$ + "Type: '" + bl\blockType + "'" + nl$
                     error$ = error$ + "Colors: '" + bl\blockColors + "'" + nl$
                     error$ = error$ + "Directions: '" + bl\directions + "'" + nl$
-                    MakeError error$
+                    DrawOverlayInfo( error$, "Error" )
+                    WriteLine dbgFile, "Unvalid block! -> " + error$
                 EndIf
             ElseIf bl\tileX < 0 Or bl\tileX > MAPSIZE-1 Or bl\tileY < 0 Or bl\tileY > MAPSIZE-1 Then
                 nonValid = True
+                If DEBUG Then
+                    error$ = "Erroneus block coordinates!"
+                    error$ = error$ + "x: "+ bl\tileX + " y: " + bl\tileY
+                    DrawOverlayInfo( error$, "Error" )
+                    WriteLine dbgFile, "Unvalid block! -> " + error$
+                EndIf
             EndIf
             
             If nonValid Then Exit // Turha loopata en‰‰, kun kartta ei ole validi.
@@ -536,6 +610,12 @@ Function LoadMapFile( _filePath$ )
     EndIf
     
     If ret = True Then
+        If DEBUG Then
+            WriteLine dbgFile, "-----------"
+            WriteLine dbgFile, "Validating blocks done!"
+            WriteLine dbgFile, "Now let's check MD5-hash."
+            WriteLine dbgFile, "-----------"
+        EndIf
         // Jos kartta on viel‰ t‰h‰n menness‰ validi, niin tarkistetaan MD5-hash.
         md5source$ = mapName$ + mapAuthor$
         For bl.SPECIALBLOCKS = Each SPECIALBLOCKS
@@ -549,9 +629,14 @@ Function LoadMapFile( _filePath$ )
         // Tehd‰‰n tarkistus tiedoston MD5-hashia vasten.
         If MD5( md5source$ ) <> mapMD5Hash$ Then
             // Hashit eiv‰t olleet samoja.
+            If DEBUG Then WriteLine dbgFile, "MD5-hashes do n"+"ot match!"
             ret = -4
+        ElseIf DEBUG Then
+            WriteLine dbgFile, "MD5-hashes match! Everything is OK!"
         EndIf
     EndIf
+    
+    If DEBUG Then CloseFile dbgFile
     
     Return ret
 EndFunction
